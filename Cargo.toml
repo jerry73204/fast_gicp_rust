@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "fast-gicp-sys",
+    "fast-gicp",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Lin Hsiang-Hui <jerry73204@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/fast_gicp_rust"
+description = "Rust wrapper for fast_gicp point cloud registration library"
+keywords = ["robotics", "point-cloud", "registration", "icp", "gicp"]
+categories = ["science::robotics", "algorithms", "external-ffi-bindings"]
+
+[workspace.dependencies]
+# FFI and build dependencies
+cxx = "1.0"
+cmake = "0.1"
+pkg-config = "0.3"
+bindgen = "0.69"
+
+
+# Error handling
+thiserror = "1.0"
+
+# Math libraries
+nalgebra = "0.32"
+
+# Testing and benchmarking
+criterion = "0.5"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1

@@ -1,0 +1,32 @@
+[package]
+name = "fast-gicp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "High-level Rust API for fast_gicp point cloud registration library"
+keywords.workspace = true
+categories.workspace = true
+
+[features]
+default = ["openmp"]
+openmp = ["fast-gicp-sys/openmp"]
+cuda = ["fast-gicp-sys/cuda"]
+
+[dependencies]
+fast-gicp-sys = { version = "0.1.0", path = "../fast-gicp-sys" }
+thiserror.workspace = true
+nalgebra.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[example]]
+name = "basic_registration"
+required-features = []
+
+[[example]]
+name = "cuda_registration"
+required-features = ["cuda"]
+

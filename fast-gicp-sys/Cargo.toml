@@ -1,0 +1,27 @@
+[package]
+name = "fast-gicp-sys"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Low-level FFI bindings for fast_gicp C++ library"
+keywords.workspace = true
+categories.workspace = true
+build = "build.rs"
+links = "fast_gicp"
+
+[features]
+default = ["openmp"]
+openmp = []
+cuda = ["dep:cuda-sys"]
+
+[dependencies]
+cxx.workspace = true
+
+cuda-sys = { version = "0.2", optional = true }
+
+[build-dependencies]
+cxx-build = "1.0"
+cmake.workspace = true
+pkg-config.workspace = true
