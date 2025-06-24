@@ -2,7 +2,7 @@
 
 #[cfg(feature = "cuda")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use fast_gicp::{cuda::FastVGICPCuda, PointCloudXYZ, Transform3f};
+    use fast_gicp::{cuda::FastVGICPCuda, PointCloudXYZ};
 
     println!("Fast VGICP CUDA Registration Example");
 
@@ -24,30 +24,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Created clouds with {} points each", source_cloud.size());
 
     // Create CUDA-accelerated FastVGICP
-    let mut vgicp_cuda = FastVGICPCuda::new();
+    let mut vgicp_cuda = FastVGICPCuda::new()?;
 
-    // TODO: This will fail until CUDA methods are implemented
+    // Set input clouds
     println!("Setting input clouds...");
-    match vgicp_cuda.set_input_source(&source_cloud) {
-        Ok(_) => println!("Source cloud set successfully"),
-        Err(e) => println!("Failed to set source cloud: {}", e),
-    }
+    vgicp_cuda.set_input_source(&source_cloud)?;
+    vgicp_cuda.set_input_target(&target_cloud)?;
+    println!("Input clouds set successfully");
 
-    match vgicp_cuda.set_input_target(&target_cloud) {
-        Ok(_) => println!("Target cloud set successfully"),
-        Err(e) => println!("Failed to set target cloud: {}", e),
-    }
+    // Configure CUDA-specific parameters
+    vgicp_cuda.set_max_iterations(50)?;
+    vgicp_cuda.set_resolution(1.0)?;
+    vgicp_cuda.set_neighbor_search_method(1)?; // GPU_BRUTEFORCE
 
-    // TODO: This will fail until align is implemented
+    // Perform CUDA registration
     println!("Performing CUDA registration...");
-    match vgicp_cuda.align(&Transform3f::identity()) {
-        Ok(result) => {
-            println!("Registration completed!");
-            println!("Converged: {}", result.has_converged);
-            println!("Fitness score: {:.6}", result.fitness_score);
-        }
-        Err(e) => println!("Registration failed: {}", e),
-    }
+    let result = vgicp_cuda.align(None)?;
+
+    println!("Registration completed!");
+    println!("Converged: {}", result.has_converged);
+    println!("Fitness score: {:.6}", result.fitness_score);
+    println!("Number of iterations: {}", result.num_iterations);
+
+    let transform = result.final_transformation;
+    let translation = transform.translation();
+    println!(
+        "Final translation: [{:.3}, {:.3}, {:.3}]",
+        translation[0], translation[1], translation[2]
+    );
 
     Ok(())
 }

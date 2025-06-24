@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         [0.5, 0.5, 0.5],
     ];
 
-    let source_cloud: PointCloudXYZ = source_points.into_iter().collect();
+    let source_cloud: PointCloudXYZ = source_points.iter().copied().collect();
     println!("Created source cloud with {} points", source_cloud.size());
 
     // Create target point cloud (same cube, but translated and rotated)
@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Created target cloud with {} points", target_cloud.size());
 
     // Create and configure FastGICP
-    let mut gicp = FastGICP::new();
+    let mut gicp = FastGICP::new()?;
 
     // Set input clouds
     gicp.set_input_source(&source_cloud)?;
@@ -58,16 +58,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Perform registration with identity initial guess
     println!("Performing registration...");
-    let result = gicp.align_simple()?;
+    let result = gicp.align(None)?;
 
     // Display results
     println!("Registration completed!");
     println!("Converged: {}", result.has_converged);
     println!("Fitness score: {:.6}", result.fitness_score);
+    println!("Number of iterations: {}", result.num_iterations);
 
     // Compare with ground truth
-    let estimated_transform = result.transformation.to_isometry();
-    let ground_truth_transform = Transform3f::from_isometry(&true_transform);
+    let estimated_transform = result.final_transformation.to_isometry();
+    let _ground_truth_transform = Transform3f::from_isometry(&true_transform);
 
     println!("\nTransformation comparison:");
     println!(

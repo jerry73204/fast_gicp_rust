@@ -16,6 +16,7 @@ cuda = ["fast-gicp-sys/cuda"]
 
 [dependencies]
 fast-gicp-sys = { version = "0.1.0", path = "../fast-gicp-sys" }
+cxx = "1.0"
 thiserror.workspace = true
 nalgebra.workspace = true
 

@@ -27,7 +27,7 @@ fn find_cuda_root() -> Option<String> {
     // Check if user specified a preferred CUDA version
     let preferred_version = env::var("CUDA_VERSION").ok();
 
-    // Check common installation locations
+    // Check common installation locations - CUDA 12.x only
     let common_paths = vec![
         "/usr/local/cuda",
         "/usr/local/cuda-12.8",
@@ -39,15 +39,6 @@ fn find_cuda_root() -> Option<String> {
         "/usr/local/cuda-12.2",
         "/usr/local/cuda-12.1",
         "/usr/local/cuda-12.0",
-        "/usr/local/cuda-11.8",
-        "/usr/local/cuda-11.7",
-        "/usr/local/cuda-11.6",
-        "/usr/local/cuda-11.5",
-        "/usr/local/cuda-11.4",
-        "/usr/local/cuda-11.3",
-        "/usr/local/cuda-11.2",
-        "/usr/local/cuda-11.1",
-        "/usr/local/cuda-11.0",
         "/opt/cuda",
         "/usr/cuda",
     ];
@@ -145,8 +136,8 @@ fn detect_cuda_architectures() -> Option<String> {
 
 fn main() {
     // Tell cargo to rerun this build script if the wrapper changes
-    println!("cargo:rerun-if-changed=src/minimal_wrapper.cpp");
-    println!("cargo:rerun-if-changed=include/minimal_wrapper.h");
+    println!("cargo:rerun-if-changed=src/wrapper.cpp");
+    println!("cargo:rerun-if-changed=include/wrapper.h");
     println!("cargo:rerun-if-changed=../fast_gicp");
 
     // Get output directory
@@ -166,6 +157,7 @@ fn main() {
 
     println!("cargo:rustc-link-lib=pcl_common");
     println!("cargo:rustc-link-lib=pcl_io");
+    println!("cargo:rustc-link-lib=pcl_search");
     println!("cargo:rustc-link-lib=pcl_registration");
     println!("cargo:rustc-link-lib=flann");
     println!("cargo:rustc-link-lib=flann_cpp");
@@ -185,6 +177,14 @@ fn main() {
     #[cfg(feature = "cuda")]
     {
         cmake_config.define("BUILD_VGICP_CUDA", "ON");
+
+        // Probe for CUDA installation to set up library paths
+        let cuda_root = find_cuda_root();
+        if let Some(cuda_path) = &cuda_root {
+            println!("cargo:rustc-link-search=native={}/lib64", cuda_path);
+            println!("cargo:rustc-link-search=native={}/lib", cuda_path);
+        }
+
         println!("cargo:rustc-link-lib=cudart");
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=curand");
@@ -242,26 +242,32 @@ fn main() {
             panic!("CUDA installation not found. Please install CUDA toolkit or set CUDA_ROOT environment variable.");
         }
 
-        // Configure CUDA compilation flags
+        // Configure CUDA compilation flags for CUDA 12.x
         let cuda_flags = vec![
             "-diag-suppress 20012",              // Suppress Eigen attribute warnings
             "--expt-relaxed-constexpr",          // Required for Eigen/Thrust compatibility
             "--extended-lambda",                 // Required for CUDA lambdas
-            "-std=c++14",                        // Use C++14 for better compatibility
+            "-std=c++17",                        // Use C++17 for CUDA 12.x
             "--use_fast_math",                   // Optimize math operations
             "-DTHRUST_IGNORE_CUB_VERSION_CHECK", // Ignore CUB version mismatches
             "-DTHRUST_DEVICE_SYSTEM=THRUST_DEVICE_SYSTEM_CUDA", // Force CUDA backend
             "-DCUDA_API_PER_THREAD_DEFAULT_STREAM", // Use per-thread default stream
+            "-DFAST_GICP_CUDA_12_MODERNIZATION", // Enable our modernization code
+            "--disable-warnings",                // Reduce noise during migration
         ];
         cmake_config.define("CMAKE_CUDA_FLAGS", cuda_flags.join(" "));
 
-        // Set CUDA standard for compatibility
-        cmake_config.define("CMAKE_CUDA_STANDARD", "14");
+        // Set CUDA standard for CUDA 12.x compatibility
+        cmake_config.define("CMAKE_CUDA_STANDARD", "17");
         cmake_config.define("CMAKE_CUDA_STANDARD_REQUIRED", "ON");
+        cmake_config.define("CMAKE_CXX_STANDARD", "17");
+        cmake_config.define("CMAKE_CXX_STANDARD_REQUIRED", "ON");
 
-        // Detect GPU architectures or use reasonable defaults
-        let cuda_archs =
-            detect_cuda_architectures().unwrap_or_else(|| "50;52;60;61;70;75".to_string());
+        // Detect GPU architectures or use reasonable defaults for modern GPUs
+        let cuda_archs = detect_cuda_architectures().unwrap_or_else(|| {
+            // Support only recent GPU architectures for faster builds (Turing, Ampere, Ada Lovelace, Hopper)
+            "75;80;86;87;89;90".to_string()
+        });
         cmake_config.define("CMAKE_CUDA_ARCHITECTURES", cuda_archs);
     }
 
@@ -276,8 +282,9 @@ fn main() {
     println!("cargo:rustc-link-lib=fast_gicp");
 
     // Build our wrapper using cxx-build
-    cxx_build::bridge("src/minimal_lib.rs")
-        .file("src/minimal_wrapper.cpp")
+    let mut cxx_build = cxx_build::bridge("src/lib.rs");
+    cxx_build
+        .file("src/wrapper.cpp")
         .include("include")
         .include(format!("{}/include", fast_gicp_build.display()))
         .include("../fast_gicp/include")
@@ -285,7 +292,16 @@ fn main() {
         .includes(&pcl.include_paths)
         .flag_if_supported("-std=c++17")
         .flag_if_supported("-O3")
-        .compile("fast_gicp_wrapper");
+        .flag_if_supported("-DFAST_GICP_CUDA_12_MODERNIZATION");
+
+    // Add CUDA flag to CXX build
+    #[cfg(feature = "cuda")]
+    cxx_build.flag_if_supported("-DBUILD_VGICP_CUDA");
+
+    #[cfg(not(feature = "cuda"))]
+    cxx_build.flag_if_supported("-UBUILD_VGICP_CUDA");
+
+    cxx_build.compile("fast_gicp_wrapper");
 
     // Generate bindings for rust-analyzer and IDE support
     println!("cargo:rustc-link-lib=fast_gicp_wrapper");

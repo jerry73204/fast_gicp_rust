@@ -1,9 +1,8 @@
 //! Point cloud types and operations.
 
-use crate::{FastGicpError, Result};
+use crate::{Error, Result};
 use cxx::UniquePtr;
-use fast_gicp_sys::ffi::{self, Point3f, Point4f};
-use std::pin::Pin;
+use fast_gicp_sys::ffi::{self};
 
 /// A point cloud containing XYZ coordinates.
 pub struct PointCloudXYZ {
@@ -17,22 +16,22 @@ pub struct PointCloudXYZI {
 
 impl PointCloudXYZ {
     /// Creates a new empty point cloud.
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
             inner: ffi::create_point_cloud_xyz(),
-        }
+        })
     }
 
     /// Creates a point cloud from a slice of points.
     pub fn from_points(points: &[[f32; 3]]) -> Result<Self> {
-        let ffi_points: Vec<Point3f> = points
-            .iter()
-            .map(|p| Point3f::new(p[0], p[1], p[2]))
-            .collect();
+        let mut cloud = Self::new()?;
+        cloud.reserve(points.len());
 
-        Ok(Self {
-            inner: ffi::point_cloud_xyz_from_points(&ffi_points),
-        })
+        for &[x, y, z] in points {
+            cloud.push_point(x, y, z)?;
+        }
+
+        Ok(cloud)
     }
 
     /// Returns the number of points in the cloud.
@@ -56,25 +55,40 @@ impl PointCloudXYZ {
     }
 
     /// Adds a point to the cloud.
-    pub fn push(&mut self, point: [f32; 3]) {
-        let ffi_point = Point3f::new(point[0], point[1], point[2]);
-        ffi::point_cloud_xyz_push_back(self.inner.pin_mut(), &ffi_point);
+    pub fn push(&mut self, point: [f32; 3]) -> Result<()> {
+        self.push_point(point[0], point[1], point[2])
+    }
+
+    /// Adds a point to the cloud by coordinates.
+    pub fn push_point(&mut self, x: f32, y: f32, z: f32) -> Result<()> {
+        ffi::point_cloud_xyz_push_point(self.inner.pin_mut(), x, y, z);
+        Ok(())
     }
 
     /// Gets a point from the cloud by index.
     pub fn get(&self, index: usize) -> Result<[f32; 3]> {
         if index >= self.size() {
-            return Err(FastGicpError::IndexOutOfBounds { index });
+            return Err(Error::IndexOutOfBounds { index });
         }
 
         let point = ffi::point_cloud_xyz_get_point(&self.inner, index);
         Ok([point.x, point.y, point.z])
     }
 
+    /// Sets a point in the cloud by index.
+    pub fn set(&mut self, index: usize, point: [f32; 3]) -> Result<()> {
+        if index >= self.size() {
+            return Err(Error::IndexOutOfBounds { index });
+        }
+        ffi::point_cloud_xyz_set_point(self.inner.pin_mut(), index, point[0], point[1], point[2]);
+        Ok(())
+    }
+
     /// Converts the point cloud to a vector of points.
     pub fn to_points(&self) -> Vec<[f32; 3]> {
-        let ffi_points = ffi::point_cloud_xyz_to_points(&self.inner);
-        ffi_points.into_iter().map(|p| [p.x, p.y, p.z]).collect()
+        (0..self.size())
+            .map(|i| self.get(i).expect("Index should be valid"))
+            .collect()
     }
 
     /// Returns an iterator over the points in the cloud.
@@ -93,7 +107,7 @@ impl PointCloudXYZ {
 
 impl Default for PointCloudXYZ {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default point cloud")
     }
 }
 
@@ -140,22 +154,22 @@ impl<'a> ExactSizeIterator for PointCloudXYZIter<'a> {}
 
 impl PointCloudXYZI {
     /// Creates a new empty point cloud.
-    pub fn new() -> Self {
-        Self {
+    pub fn new() -> Result<Self> {
+        Ok(Self {
             inner: ffi::create_point_cloud_xyzi(),
-        }
+        })
     }
 
     /// Creates a point cloud from a slice of points with intensity.
     pub fn from_points(points: &[[f32; 4]]) -> Result<Self> {
-        let ffi_points: Vec<Point4f> = points
-            .iter()
-            .map(|p| Point4f::new(p[0], p[1], p[2], p[3]))
-            .collect();
+        let mut cloud = Self::new()?;
+        cloud.reserve(points.len());
 
-        Ok(Self {
-            inner: ffi::point_cloud_xyzi_from_points(&ffi_points),
-        })
+        for &[x, y, z, intensity] in points {
+            cloud.push_point(x, y, z, intensity)?;
+        }
+
+        Ok(cloud)
     }
 
     /// Returns the number of points in the cloud.
@@ -179,27 +193,46 @@ impl PointCloudXYZI {
     }
 
     /// Adds a point to the cloud.
-    pub fn push(&mut self, point: [f32; 4]) {
-        let ffi_point = Point4f::new(point[0], point[1], point[2], point[3]);
-        ffi::point_cloud_xyzi_push_back(self.inner.pin_mut(), &ffi_point);
+    pub fn push(&mut self, point: [f32; 4]) -> Result<()> {
+        self.push_point(point[0], point[1], point[2], point[3])
+    }
+
+    /// Adds a point to the cloud by coordinates and intensity.
+    pub fn push_point(&mut self, x: f32, y: f32, z: f32, intensity: f32) -> Result<()> {
+        ffi::point_cloud_xyzi_push_point(self.inner.pin_mut(), x, y, z, intensity);
+        Ok(())
     }
 
     /// Gets a point from the cloud by index.
     pub fn get(&self, index: usize) -> Result<[f32; 4]> {
         if index >= self.size() {
-            return Err(FastGicpError::IndexOutOfBounds { index });
+            return Err(Error::IndexOutOfBounds { index });
         }
 
         let point = ffi::point_cloud_xyzi_get_point(&self.inner, index);
         Ok([point.x, point.y, point.z, point.intensity])
     }
 
+    /// Sets a point in the cloud by index.
+    pub fn set(&mut self, index: usize, point: [f32; 4]) -> Result<()> {
+        if index >= self.size() {
+            return Err(Error::IndexOutOfBounds { index });
+        }
+        ffi::point_cloud_xyzi_set_point(
+            self.inner.pin_mut(),
+            index,
+            point[0],
+            point[1],
+            point[2],
+            point[3],
+        );
+        Ok(())
+    }
+
     /// Converts the point cloud to a vector of points.
     pub fn to_points(&self) -> Vec<[f32; 4]> {
-        let ffi_points = ffi::point_cloud_xyzi_to_points(&self.inner);
-        ffi_points
-            .into_iter()
-            .map(|p| [p.x, p.y, p.z, p.intensity])
+        (0..self.size())
+            .map(|i| self.get(i).expect("Index should be valid"))
             .collect()
     }
 
@@ -219,7 +252,7 @@ impl PointCloudXYZI {
 
 impl Default for PointCloudXYZI {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default point cloud")
     }
 }
 
@@ -270,11 +303,11 @@ mod tests {
 
     #[test]
     fn test_point_cloud_xyz_basic_operations() {
-        let mut cloud = PointCloudXYZ::new();
+        let mut cloud = PointCloudXYZ::new().unwrap();
         assert_eq!(cloud.size(), 0);
         assert!(cloud.is_empty());
 
-        cloud.push([1.0, 2.0, 3.0]);
+        cloud.push([1.0, 2.0, 3.0]).unwrap();
         assert_eq!(cloud.size(), 1);
         assert!(!cloud.is_empty());
 
@@ -308,11 +341,11 @@ mod tests {
 
     #[test]
     fn test_point_cloud_xyzi_basic_operations() {
-        let mut cloud = PointCloudXYZI::new();
+        let mut cloud = PointCloudXYZI::new().unwrap();
         assert_eq!(cloud.size(), 0);
         assert!(cloud.is_empty());
 
-        cloud.push([1.0, 2.0, 3.0, 0.5]);
+        cloud.push([1.0, 2.0, 3.0, 0.5]).unwrap();
         assert_eq!(cloud.size(), 1);
         assert!(!cloud.is_empty());
 

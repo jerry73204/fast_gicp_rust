@@ -1,167 +1,231 @@
-//! 3D transformation utilities.
+//! 3D transformation utilities
 
 use fast_gicp_sys::ffi;
 use nalgebra::{Isometry3, Matrix4, UnitQuaternion, Vector3};
 
-/// A 3D transformation represented as a 4x4 matrix.
-#[derive(Debug, Clone, PartialEq)]
+/// 3D transformation matrix (4x4 homogeneous transformation)
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Transform3f {
-    inner: ffi::Transform3f,
+    /// 4x4 transformation matrix in row-major order
+    pub matrix: [[f32; 4]; 4],
 }
 
 impl Transform3f {
-    /// Creates an identity transformation.
+    /// Create an identity transformation
     pub fn identity() -> Self {
-        Self {
-            inner: ffi::Transform3f::identity(),
+        let ffi_transform = ffi::transform_identity();
+        Self::from_transform4f(&ffi_transform)
+    }
+
+    /// Create transformation from flat array (row-major order)
+    pub fn from_flat(data: &[f32; 16]) -> Self {
+        let mut matrix = [[0.0; 4]; 4];
+        for i in 0..4 {
+            for j in 0..4 {
+                matrix[i][j] = data[i * 4 + j];
+            }
         }
+        Self { matrix }
+    }
+
+    /// Convert to flat array (row-major order)
+    pub fn to_flat(&self) -> [f32; 16] {
+        let mut data = [0.0; 16];
+        for i in 0..4 {
+            for j in 0..4 {
+                data[i * 4 + j] = self.matrix[i][j];
+            }
+        }
+        data
+    }
+
+    /// Create transformation from translation
+    pub fn from_translation(x: f32, y: f32, z: f32) -> Self {
+        let transform4f = ffi::transform_from_translation(x, y, z);
+        Self::from_transform4f(&transform4f)
     }
 
     /// Creates a transformation from a translation vector.
-    pub fn from_translation(translation: [f32; 3]) -> Self {
-        let mut matrix = [0.0f32; 16];
-        // Identity matrix
-        matrix[0] = 1.0; // m00
-        matrix[5] = 1.0; // m11
-        matrix[10] = 1.0; // m22
-        matrix[15] = 1.0; // m33
-
-        // Translation
-        matrix[12] = translation[0]; // m03
-        matrix[13] = translation[1]; // m13
-        matrix[14] = translation[2]; // m23
-
-        Self {
-            inner: ffi::Transform3f { matrix },
-        }
+    pub fn from_translation_array(translation: [f32; 3]) -> Self {
+        Self::from_translation(translation[0], translation[1], translation[2])
     }
 
-    /// Creates a transformation from a rotation matrix (3x3) and translation.
-    pub fn from_rotation_translation(rotation: [[f32; 3]; 3], translation: [f32; 3]) -> Self {
-        let mut matrix = [0.0f32; 16];
-
-        // Set rotation part (column-major)
-        matrix[0] = rotation[0][0]; // m00
-        matrix[1] = rotation[1][0]; // m10
-        matrix[2] = rotation[2][0]; // m20
-        matrix[3] = 0.0; // m30
-
-        matrix[4] = rotation[0][1]; // m01
-        matrix[5] = rotation[1][1]; // m11
-        matrix[6] = rotation[2][1]; // m21
-        matrix[7] = 0.0; // m31
-
-        matrix[8] = rotation[0][2]; // m02
-        matrix[9] = rotation[1][2]; // m12
-        matrix[10] = rotation[2][2]; // m22
-        matrix[11] = 0.0; // m32
-
-        // Set translation part
-        matrix[12] = translation[0]; // m03
-        matrix[13] = translation[1]; // m13
-        matrix[14] = translation[2]; // m23
-        matrix[15] = 1.0; // m33
-
-        Self {
-            inner: ffi::Transform3f { matrix },
-        }
-    }
-
-    /// Creates a transformation from a nalgebra Isometry3.
-    pub fn from_isometry(isometry: &Isometry3<f32>) -> Self {
-        let matrix = isometry.to_homogeneous();
-        let mut array = [0.0f32; 16];
-
-        // Convert column-major nalgebra matrix to our format
-        for col in 0..4 {
-            for row in 0..4 {
-                array[col * 4 + row] = matrix[(row, col)];
-            }
-        }
-
-        Self {
-            inner: ffi::Transform3f { matrix: array },
-        }
-    }
-
-    /// Converts to a nalgebra Isometry3.
-    pub fn to_isometry(&self) -> Isometry3<f32> {
-        let mut matrix = Matrix4::<f32>::zeros();
-
-        // Convert our format to column-major nalgebra matrix
-        for col in 0..4 {
-            for row in 0..4 {
-                matrix[(row, col)] = self.inner.matrix[col * 4 + row];
-            }
-        }
-
-        Isometry3::from_matrix_unchecked(matrix)
-    }
-
-    /// Gets the translation component as a vector.
+    /// Get translation component
     pub fn translation(&self) -> [f32; 3] {
-        [
-            self.inner.matrix[12], // m03
-            self.inner.matrix[13], // m13
-            self.inner.matrix[14], // m23
-        ]
+        [self.matrix[0][3], self.matrix[1][3], self.matrix[2][3]]
     }
 
-    /// Gets the rotation component as a 3x3 matrix.
+    /// Set translation component
+    pub fn set_translation(&mut self, x: f32, y: f32, z: f32) {
+        self.matrix[0][3] = x;
+        self.matrix[1][3] = y;
+        self.matrix[2][3] = z;
+    }
+
+    /// Get rotation matrix (3x3 upper-left block)
     pub fn rotation(&self) -> [[f32; 3]; 3] {
         [
-            [
-                self.inner.matrix[0],
-                self.inner.matrix[4],
-                self.inner.matrix[8],
-            ], // row 0
-            [
-                self.inner.matrix[1],
-                self.inner.matrix[5],
-                self.inner.matrix[9],
-            ], // row 1
-            [
-                self.inner.matrix[2],
-                self.inner.matrix[6],
-                self.inner.matrix[10],
-            ], // row 2
+            [self.matrix[0][0], self.matrix[0][1], self.matrix[0][2]],
+            [self.matrix[1][0], self.matrix[1][1], self.matrix[1][2]],
+            [self.matrix[2][0], self.matrix[2][1], self.matrix[2][2]],
         ]
     }
 
-    /// Gets the raw 4x4 matrix in column-major order.
-    pub fn matrix(&self) -> &[f32; 16] {
-        &self.inner.matrix
+    /// Set rotation matrix (3x3 upper-left block)
+    pub fn set_rotation(&mut self, rotation: [[f32; 3]; 3]) {
+        for i in 0..3 {
+            for j in 0..3 {
+                self.matrix[i][j] = rotation[i][j];
+            }
+        }
+    }
+
+    /// Create transformation from rotation matrix and translation
+    pub fn from_rotation_translation(rotation: [[f32; 3]; 3], translation: [f32; 3]) -> Self {
+        let mut transform = Self::identity();
+        transform.set_rotation(rotation);
+        transform.set_translation(translation[0], translation[1], translation[2]);
+        transform
+    }
+
+    /// Multiply two transformations
+    pub fn multiply(&self, other: &Transform3f) -> Self {
+        let a = self.to_transform4f();
+        let b = other.to_transform4f();
+        let result = ffi::transform_multiply(&a, &b);
+        Self::from_transform4f(&result)
     }
 
     /// Composes this transformation with another (self * other).
     pub fn compose(&self, other: &Transform3f) -> Transform3f {
-        let iso1 = self.to_isometry();
-        let iso2 = other.to_isometry();
-        let result = iso1 * iso2;
-        Transform3f::from_isometry(&result)
+        self.multiply(other)
     }
 
-    /// Inverts the transformation.
-    pub fn inverse(&self) -> Transform3f {
-        let iso = self.to_isometry();
-        let inv = iso.inverse();
-        Transform3f::from_isometry(&inv)
+    /// Compute inverse transformation
+    pub fn inverse(&self) -> Self {
+        let transform4f = self.to_transform4f();
+        let result = ffi::transform_inverse(&transform4f);
+        Self::from_transform4f(&result)
     }
 
-    /// Internal method to get access to the underlying FFI type.
-    pub(crate) fn as_ffi(&self) -> &ffi::Transform3f {
-        &self.inner
+    /// Transform a 3D point
+    pub fn transform_point(&self, point: [f32; 3]) -> [f32; 3] {
+        let [x, y, z] = point;
+        let tx = self.matrix[0][0] * x
+            + self.matrix[0][1] * y
+            + self.matrix[0][2] * z
+            + self.matrix[0][3];
+        let ty = self.matrix[1][0] * x
+            + self.matrix[1][1] * y
+            + self.matrix[1][2] * z
+            + self.matrix[1][3];
+        let tz = self.matrix[2][0] * x
+            + self.matrix[2][1] * y
+            + self.matrix[2][2] * z
+            + self.matrix[2][3];
+        [tx, ty, tz]
     }
 
-    /// Internal method to create from FFI type.
-    pub(crate) fn from_ffi(transform: ffi::Transform3f) -> Self {
-        Self { inner: transform }
+    /// Create from nalgebra Isometry3
+    pub fn from_isometry(isometry: &Isometry3<f32>) -> Self {
+        let matrix = isometry.to_homogeneous();
+        let mut flat = [0.0f32; 16];
+
+        // Convert column-major nalgebra matrix to row-major
+        for i in 0..4 {
+            for j in 0..4 {
+                flat[i * 4 + j] = matrix[(i, j)];
+            }
+        }
+
+        Self::from_flat(&flat)
+    }
+
+    /// Convert to nalgebra Isometry3
+    pub fn to_isometry(&self) -> Isometry3<f32> {
+        let mut matrix = Matrix4::<f32>::zeros();
+
+        // Convert row-major to column-major
+        for i in 0..4 {
+            for j in 0..4 {
+                matrix[(i, j)] = self.matrix[i][j];
+            }
+        }
+
+        // Extract rotation and translation from the matrix
+        let rotation = matrix.fixed_view::<3, 3>(0, 0);
+        let translation = matrix.fixed_view::<3, 1>(0, 3);
+
+        Isometry3::from_parts(
+            nalgebra::Translation3::from(nalgebra::Vector3::new(
+                translation[(0, 0)],
+                translation[(1, 0)],
+                translation[(2, 0)],
+            )),
+            nalgebra::UnitQuaternion::from_matrix(&rotation.into()),
+        )
+    }
+
+    /// Get the raw 4x4 matrix in row-major order
+    pub fn matrix_data(&self) -> &[[f32; 4]; 4] {
+        &self.matrix
+    }
+
+    /// Convert to FFI Transform4f
+    pub(crate) fn to_transform4f(&self) -> ffi::Transform4f {
+        ffi::Transform4f {
+            data: self.to_flat(),
+        }
+    }
+
+    /// Create from FFI Transform4f
+    pub(crate) fn from_transform4f(transform: &ffi::Transform4f) -> Self {
+        Self::from_flat(&transform.data)
     }
 }
 
 impl Default for Transform3f {
     fn default() -> Self {
         Self::identity()
+    }
+}
+
+impl std::ops::Mul for Transform3f {
+    type Output = Transform3f;
+
+    fn mul(self, rhs: Transform3f) -> Self::Output {
+        self.multiply(&rhs)
+    }
+}
+
+impl std::ops::MulAssign for Transform3f {
+    fn mul_assign(&mut self, rhs: Transform3f) {
+        *self = self.multiply(&rhs);
+    }
+}
+
+// Conversion for nalgebra interop
+impl From<nalgebra::Matrix4<f32>> for Transform3f {
+    fn from(m: nalgebra::Matrix4<f32>) -> Self {
+        let mut flat = [0.0f32; 16];
+        for i in 0..4 {
+            for j in 0..4 {
+                flat[i * 4 + j] = m[(i, j)];
+            }
+        }
+        Self::from_flat(&flat)
+    }
+}
+
+impl From<Transform3f> for nalgebra::Matrix4<f32> {
+    fn from(t: Transform3f) -> Self {
+        let mut matrix = nalgebra::Matrix4::zeros();
+        for i in 0..4 {
+            for j in 0..4 {
+                matrix[(i, j)] = t.matrix[i][j];
+            }
+        }
+        matrix
     }
 }
 
@@ -186,13 +250,32 @@ impl From<Transform3f> for Isometry3<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nalgebra::{UnitQuaternion, Vector3};
 
     #[test]
-    fn test_identity_transform() {
-        let transform = Transform3f::identity();
-        let translation = transform.translation();
-        assert_eq!(translation, [0.0, 0.0, 0.0]);
+    fn test_identity() {
+        let identity = Transform3f::identity();
+        assert_eq!(identity.translation(), [0.0, 0.0, 0.0]);
+
+        let point = [1.0, 2.0, 3.0];
+        let transformed = identity.transform_point(point);
+        assert_eq!(transformed, point);
+    }
+
+    #[test]
+    fn test_translation() {
+        let transform = Transform3f::from_translation(1.0, 2.0, 3.0);
+        assert_eq!(transform.translation(), [1.0, 2.0, 3.0]);
+
+        let point = [0.0, 0.0, 0.0];
+        let transformed = transform.transform_point(point);
+        assert_eq!(transformed, [1.0, 2.0, 3.0]);
+    }
+
+    #[test]
+    fn test_translation_array() {
+        let translation = [1.0, 2.0, 3.0];
+        let transform = Transform3f::from_translation_array(translation);
+        assert_eq!(transform.translation(), translation);
 
         let rotation = transform.rotation();
         let expected_rotation = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
@@ -200,14 +283,25 @@ mod tests {
     }
 
     #[test]
-    fn test_translation_transform() {
-        let translation = [1.0, 2.0, 3.0];
-        let transform = Transform3f::from_translation(translation);
-        assert_eq!(transform.translation(), translation);
+    fn test_inverse() {
+        let transform = Transform3f::from_translation(1.0, 2.0, 3.0);
+        let inverse = transform.inverse();
+        let identity = transform.multiply(&inverse);
 
-        let rotation = transform.rotation();
-        let expected_rotation = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        assert_eq!(rotation, expected_rotation);
+        // Check if result is approximately identity
+        let point = [5.0, 6.0, 7.0];
+        let original = identity.transform_point(point);
+        assert!((original[0] - point[0]).abs() < 1e-6);
+        assert!((original[1] - point[1]).abs() < 1e-6);
+        assert!((original[2] - point[2]).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_flat_conversion() {
+        let identity = Transform3f::identity();
+        let flat = identity.to_flat();
+        let restored = Transform3f::from_flat(&flat);
+        assert_eq!(identity, restored);
     }
 
     #[test]
@@ -236,8 +330,8 @@ mod tests {
 
     #[test]
     fn test_transform_composition() {
-        let t1 = Transform3f::from_translation([1.0, 0.0, 0.0]);
-        let t2 = Transform3f::from_translation([0.0, 1.0, 0.0]);
+        let t1 = Transform3f::from_translation(1.0, 0.0, 0.0);
+        let t2 = Transform3f::from_translation(0.0, 1.0, 0.0);
         let composed = t1.compose(&t2);
 
         let expected_translation = [1.0, 1.0, 0.0];
@@ -251,7 +345,7 @@ mod tests {
     #[test]
     fn test_transform_inverse() {
         let translation = [1.0, 2.0, 3.0];
-        let transform = Transform3f::from_translation(translation);
+        let transform = Transform3f::from_translation_array(translation);
         let inverse = transform.inverse();
         let identity = transform.compose(&inverse);
 

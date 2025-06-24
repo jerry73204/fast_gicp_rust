@@ -2,16 +2,33 @@
 //!
 //! This crate provides safe, idiomatic Rust bindings for the fast_gicp C++ library,
 //! which implements efficient variants of the Generalized Iterative Closest Point (GICP) algorithm.
-
-use cxx::UniquePtr;
-use std::pin::Pin;
-use thiserror::Error;
-
-pub use fast_gicp_sys::ffi::{
-    LSQNonlinearOptimizationAlgorithm, NeighborSearchMethod, RegularizationMethod,
-};
+//!
+//! # Features
+//!
+//! - **openmp**: Enables OpenMP parallelization (default)
+//! - **cuda**: Enables CUDA GPU acceleration
+//!
+//! # Examples
+//!
+//! Basic point cloud registration:
+//!
+//! ```no_run
+//! use fast_gicp::{FastGICP, PointCloudXYZ, Transform3f};
+//!
+//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])?;
+//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]])?;
+//!
+//! let mut gicp = FastGICP::new()?;
+//! gicp.set_input_source(&source)?;
+//! gicp.set_input_target(&target)?;
+//!
+//! let result = gicp.align(None)?;
+//! println!("Final transformation: {:?}", result.final_transformation);
+//! # Ok::<(), fast_gicp::Error>(())
+//! ```
 
 /// Point cloud and registration modules
+pub mod error;
 pub mod point_cloud;
 pub mod registration;
 pub mod transform;
@@ -19,31 +36,11 @@ pub mod transform;
 #[cfg(feature = "cuda")]
 pub mod cuda;
 
+// Re-exports for convenience
+pub use error::{Error, Result};
 pub use point_cloud::{PointCloudXYZ, PointCloudXYZI};
 pub use registration::{FastGICP, FastVGICP, RegistrationResult};
 pub use transform::Transform3f;
-
-/// Error types for the fast_gicp library
-#[derive(Error, Debug)]
-pub enum FastGicpError {
-    #[error("Point cloud is empty")]
-    EmptyPointCloud,
-
-    #[error("Point cloud index out of bounds: {index}")]
-    IndexOutOfBounds { index: usize },
-
-    #[error("Registration failed to converge")]
-    RegistrationFailed,
-
-    #[error("Invalid parameter: {message}")]
-    InvalidParameter { message: String },
-
-    #[error("Internal C++ error: {message}")]
-    CppError { message: String },
-}
-
-/// Result type for fast_gicp operations
-pub type Result<T> = std::result::Result<T, FastGicpError>;
 
 #[cfg(test)]
 mod tests {
@@ -51,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_point_cloud_creation() {
-        let cloud = PointCloudXYZ::new();
+        let cloud = PointCloudXYZ::new().expect("Failed to create point cloud");
         assert_eq!(cloud.size(), 0);
         assert!(cloud.is_empty());
     }
