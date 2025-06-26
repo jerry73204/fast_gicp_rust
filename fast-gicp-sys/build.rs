@@ -59,7 +59,7 @@ fn find_cuda_root() -> Option<String> {
     for path in common_paths {
         if Path::new(path).exists() && Path::new(&format!("{}/bin/nvcc", path)).exists() {
             // Try to get version
-            if let Ok(output) = Command::new(&format!("{}/bin/nvcc", path))
+            if let Ok(output) = Command::new(format!("{}/bin/nvcc", path))
                 .arg("--version")
                 .output()
             {
@@ -211,14 +211,14 @@ fn main() {
     // For CUDA compilation, set include directories properly
     #[cfg(feature = "cuda")]
     {
+        // Probe for CUDA installation
+        let cuda_root = find_cuda_root();
+
         // Set Eigen path for CMake to find automatically
         if let Some(eigen_path) = eigen_include_paths.first() {
             cmake_config.define("EIGEN3_INCLUDE_DIR", eigen_path);
             cmake_config.define("CMAKE_PREFIX_PATH", eigen_path);
         }
-
-        // Probe for CUDA installation
-        let cuda_root = find_cuda_root();
         if let Some(cuda_path) = &cuda_root {
             println!("cargo:warning=Found CUDA at: {}", cuda_path);
 
@@ -243,7 +243,7 @@ fn main() {
         }
 
         // Configure CUDA compilation flags for CUDA 12.x
-        let cuda_flags = vec![
+        let cuda_flags = [
             "-diag-suppress 20012",              // Suppress Eigen attribute warnings
             "--expt-relaxed-constexpr",          // Required for Eigen/Thrust compatibility
             "--extended-lambda",                 // Required for CUDA lambdas
@@ -294,9 +294,16 @@ fn main() {
         .flag_if_supported("-O3")
         .flag_if_supported("-DFAST_GICP_CUDA_12_MODERNIZATION");
 
-    // Add CUDA flag to CXX build
+    // Add CUDA flag and include paths to CXX build
     #[cfg(feature = "cuda")]
-    cxx_build.flag_if_supported("-DBUILD_VGICP_CUDA");
+    {
+        cxx_build.flag_if_supported("-DBUILD_VGICP_CUDA");
+
+        // Add CUDA include paths
+        if let Some(cuda_path) = find_cuda_root() {
+            cxx_build.include(format!("{}/include", cuda_path));
+        }
+    }
 
     #[cfg(not(feature = "cuda"))]
     cxx_build.flag_if_supported("-UBUILD_VGICP_CUDA");

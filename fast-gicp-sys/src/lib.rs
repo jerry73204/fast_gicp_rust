@@ -103,6 +103,10 @@ pub mod ffi {
         fn fast_gicp_set_transformation_epsilon(gicp: Pin<&mut FastGICP>, eps: f64);
         fn fast_gicp_set_euclidean_fitness_epsilon(gicp: Pin<&mut FastGICP>, eps: f64);
         fn fast_gicp_set_max_correspondence_distance(gicp: Pin<&mut FastGICP>, distance: f64);
+        fn fast_gicp_set_num_threads(gicp: Pin<&mut FastGICP>, num_threads: i32);
+        fn fast_gicp_set_correspondence_randomness(gicp: Pin<&mut FastGICP>, k: i32);
+        fn fast_gicp_set_regularization_method(gicp: Pin<&mut FastGICP>, method: i32);
+        fn fast_gicp_set_rotation_epsilon(gicp: Pin<&mut FastGICP>, eps: f64);
 
         fn fast_vgicp_set_input_source(vgicp: Pin<&mut FastVGICP>, cloud: &PointCloudXYZ);
         fn fast_vgicp_set_input_target(vgicp: Pin<&mut FastVGICP>, cloud: &PointCloudXYZ);
@@ -111,6 +115,10 @@ pub mod ffi {
         fn fast_vgicp_set_euclidean_fitness_epsilon(vgicp: Pin<&mut FastVGICP>, eps: f64);
         fn fast_vgicp_set_max_correspondence_distance(vgicp: Pin<&mut FastVGICP>, distance: f64);
         fn fast_vgicp_set_resolution(vgicp: Pin<&mut FastVGICP>, resolution: f64);
+        fn fast_vgicp_set_num_threads(vgicp: Pin<&mut FastVGICP>, num_threads: i32);
+        fn fast_vgicp_set_regularization_method(vgicp: Pin<&mut FastVGICP>, method: i32);
+        fn fast_vgicp_set_voxel_accumulation_mode(vgicp: Pin<&mut FastVGICP>, mode: i32);
+        fn fast_vgicp_set_neighbor_search_method(vgicp: Pin<&mut FastVGICP>, method: i32);
 
         // CUDA configuration functions (conditionally compiled)
         #[cfg(feature = "cuda")]
@@ -187,6 +195,50 @@ pub mod ffi {
         fn fast_vgicp_cuda_get_fitness_score(cuda_vgicp: &FastVGICPCuda) -> f64;
         #[cfg(feature = "cuda")]
         fn fast_vgicp_cuda_get_final_num_iterations(cuda_vgicp: &FastVGICPCuda) -> i32;
+
+        // === NDTCuda Operations ===
+        // NDTCuda type and factory function are already declared above for CXX compatibility
+
+        // NDTCuda configuration
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_input_source(ndt_cuda: Pin<&mut NDTCuda>, cloud: &PointCloudXYZ);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_input_target(ndt_cuda: Pin<&mut NDTCuda>, cloud: &PointCloudXYZ);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_max_iterations(ndt_cuda: Pin<&mut NDTCuda>, max_iterations: i32);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_transformation_epsilon(ndt_cuda: Pin<&mut NDTCuda>, eps: f64);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_euclidean_fitness_epsilon(ndt_cuda: Pin<&mut NDTCuda>, eps: f64);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_max_correspondence_distance(ndt_cuda: Pin<&mut NDTCuda>, distance: f64);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_resolution(ndt_cuda: Pin<&mut NDTCuda>, resolution: f64);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_distance_mode(ndt_cuda: Pin<&mut NDTCuda>, mode: i32);
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_set_neighbor_search_method(
+            ndt_cuda: Pin<&mut NDTCuda>,
+            method: i32,
+            radius: f64,
+        );
+
+        // NDTCuda execution
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_align(ndt_cuda: Pin<&mut NDTCuda>) -> Transform4f;
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_align_with_guess(
+            ndt_cuda: Pin<&mut NDTCuda>,
+            guess: &Transform4f,
+        ) -> Transform4f;
+
+        // NDTCuda status
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_has_converged(ndt_cuda: &NDTCuda) -> bool;
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_get_fitness_score(ndt_cuda: &NDTCuda) -> f64;
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_get_final_num_iterations(ndt_cuda: &NDTCuda) -> i32;
 
         // === Transform Utilities ===
         fn transform_identity() -> Transform4f;

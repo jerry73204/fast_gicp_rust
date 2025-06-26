@@ -32,6 +32,7 @@ pub mod error;
 pub mod point_cloud;
 pub mod registration;
 pub mod transform;
+pub mod types;
 
 #[cfg(feature = "cuda")]
 pub mod cuda;
@@ -41,6 +42,13 @@ pub use error::{Error, Result};
 pub use point_cloud::{PointCloudXYZ, PointCloudXYZI};
 pub use registration::{FastGICP, FastVGICP, RegistrationResult};
 pub use transform::Transform3f;
+pub use types::{NeighborSearchMethod, RegularizationMethod, VoxelAccumulationMode};
+
+#[cfg(feature = "cuda")]
+pub use types::{NdtDistanceMode, NearestNeighborMethod};
+
+#[cfg(feature = "cuda")]
+pub use cuda::{FastVGICPCuda, NDTCuda};
 
 #[cfg(test)]
 mod tests {

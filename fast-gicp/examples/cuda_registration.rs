@@ -1,13 +1,12 @@
 //! CUDA-accelerated point cloud registration example.
 
-#[cfg(feature = "cuda")]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use fast_gicp::{cuda::FastVGICPCuda, PointCloudXYZ};
 
     println!("Fast VGICP CUDA Registration Example");
 
     // Create a simple test cloud
-    let points = vec![
+    let points = [
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
@@ -54,10 +53,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     Ok(())
-}
-
-#[cfg(not(feature = "cuda"))]
-fn main() {
-    println!("This example requires the 'cuda' feature to be enabled.");
-    println!("Run with: cargo run --example cuda_registration --features cuda");
 }

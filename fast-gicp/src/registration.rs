@@ -1,6 +1,9 @@
 //! Registration algorithms and traits.
 
-use crate::{Error, PointCloudXYZ, Result, Transform3f};
+use crate::{
+    types::{NeighborSearchMethod, RegularizationMethod, VoxelAccumulationMode},
+    Error, PointCloudXYZ, Result, Transform3f,
+};
 use cxx::UniquePtr;
 use fast_gicp_sys::ffi::{self};
 
@@ -92,10 +95,53 @@ impl FastGICP {
         Ok(())
     }
 
+    /// Sets the number of threads to use for parallel processing.
+    ///
+    /// Set to 0 to use all available threads (default).
+    pub fn set_num_threads(&mut self, num_threads: i32) -> Result<()> {
+        if num_threads < 0 {
+            return Err(Error::InvalidParameter {
+                message: "num_threads must be non-negative".to_string(),
+            });
+        }
+        ffi::fast_gicp_set_num_threads(self.inner.pin_mut(), num_threads);
+        Ok(())
+    }
+
+    /// Sets the correspondence randomness parameter.
+    ///
+    /// This controls random sampling of correspondences for performance.
+    /// Higher values give better accuracy but slower performance.
+    pub fn set_correspondence_randomness(&mut self, k: i32) -> Result<()> {
+        if k <= 0 {
+            return Err(Error::InvalidParameter {
+                message: "correspondence_randomness must be positive".to_string(),
+            });
+        }
+        ffi::fast_gicp_set_correspondence_randomness(self.inner.pin_mut(), k);
+        Ok(())
+    }
+
+    /// Sets the regularization method for covariance matrices.
+    pub fn set_regularization_method(&mut self, method: RegularizationMethod) {
+        ffi::fast_gicp_set_regularization_method(self.inner.pin_mut(), method as i32);
+    }
+
+    /// Sets the rotation epsilon for convergence criteria.
+    pub fn set_rotation_epsilon(&mut self, epsilon: f64) -> Result<()> {
+        if epsilon < 0.0 {
+            return Err(Error::InvalidParameter {
+                message: "epsilon must be non-negative".to_string(),
+            });
+        }
+        ffi::fast_gicp_set_rotation_epsilon(self.inner.pin_mut(), epsilon);
+        Ok(())
+    }
+
     /// Performs registration with an initial guess.
     pub fn align(&mut self, initial_guess: Option<&Transform3f>) -> Result<RegistrationResult> {
         let final_transformation = if let Some(guess) = initial_guess {
-            let guess_ffi = guess.to_transform4f();
+            let guess_ffi = guess.as_transform4f();
             ffi::fast_gicp_align_with_guess(self.inner.pin_mut(), &guess_ffi)
         } else {
             ffi::fast_gicp_align(self.inner.pin_mut())
@@ -206,43 +252,38 @@ impl FastVGICP {
         Ok(())
     }
 
-    // TODO: These methods are not yet implemented in the FFI
-    // /// Sets the neighbor search method.
-    // pub fn set_neighbor_search_method(&mut self, method: NeighborSearchMethod) {
-    //     ffi::fast_vgicp_set_neighbor_search_method(self.inner.pin_mut(), method);
-    // }
+    /// Sets the number of threads to use for parallel processing.
+    ///
+    /// Set to 0 to use all available threads (default).
+    pub fn set_num_threads(&mut self, num_threads: i32) -> Result<()> {
+        if num_threads < 0 {
+            return Err(Error::InvalidParameter {
+                message: "num_threads must be non-negative".to_string(),
+            });
+        }
+        ffi::fast_vgicp_set_num_threads(self.inner.pin_mut(), num_threads);
+        Ok(())
+    }
 
-    // /// Sets the neighbor search radius.
-    // pub fn set_neighbor_search_radius(&mut self, radius: f64) -> Result<()> {
-    //     if radius <= 0.0 {
-    //         return Err(Error::InvalidParameter {
-    //             message: "radius must be positive".to_string(),
-    //         });
-    //     }
-    //     ffi::fast_vgicp_set_neighbor_search_radius(self.inner.pin_mut(), radius);
-    //     Ok(())
-    // }
+    /// Sets the regularization method for covariance matrices.
+    pub fn set_regularization_method(&mut self, method: RegularizationMethod) {
+        ffi::fast_vgicp_set_regularization_method(self.inner.pin_mut(), method as i32);
+    }
 
-    // /// Sets the regularization method.
-    // pub fn set_regularization_method(&mut self, method: RegularizationMethod) {
-    //     ffi::fast_vgicp_set_regularization_method(self.inner.pin_mut(), method);
-    // }
+    /// Sets the voxel accumulation mode.
+    pub fn set_voxel_accumulation_mode(&mut self, mode: VoxelAccumulationMode) {
+        ffi::fast_vgicp_set_voxel_accumulation_mode(self.inner.pin_mut(), mode as i32);
+    }
 
-    // /// Sets the number of threads to use.
-    // pub fn set_num_threads(&mut self, num_threads: i32) -> Result<()> {
-    //     if num_threads <= 0 {
-    //         return Err(Error::InvalidParameter {
-    //             message: "num_threads must be positive".to_string(),
-    //         });
-    //     }
-    //     ffi::fast_vgicp_set_num_threads(self.inner.pin_mut(), num_threads);
-    //     Ok(())
-    // }
+    /// Sets the neighbor search method.
+    pub fn set_neighbor_search_method(&mut self, method: NeighborSearchMethod) {
+        ffi::fast_vgicp_set_neighbor_search_method(self.inner.pin_mut(), method as i32);
+    }
 
     /// Performs registration with an initial guess.
     pub fn align(&mut self, initial_guess: Option<&Transform3f>) -> Result<RegistrationResult> {
         let final_transformation = if let Some(guess) = initial_guess {
-            let guess_ffi = guess.to_transform4f();
+            let guess_ffi = guess.as_transform4f();
             ffi::fast_vgicp_align_with_guess(self.inner.pin_mut(), &guess_ffi)
         } else {
             ffi::fast_vgicp_align(self.inner.pin_mut())

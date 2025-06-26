@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Fast GICP Basic Registration Example");
 
     // Create source point cloud (a simple cube)
-    let source_points = vec![
+    let source_points = [
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],

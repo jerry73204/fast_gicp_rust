@@ -61,6 +61,7 @@ impl PointCloudXYZ {
 
     /// Adds a point to the cloud by coordinates.
     pub fn push_point(&mut self, x: f32, y: f32, z: f32) -> Result<()> {
+        // PCL internally handles memory allocation, so we don't need explicit capacity checks
         ffi::point_cloud_xyz_push_point(self.inner.pin_mut(), x, y, z);
         Ok(())
     }
@@ -89,6 +90,45 @@ impl PointCloudXYZ {
         (0..self.size())
             .map(|i| self.get(i).expect("Index should be valid"))
             .collect()
+    }
+
+    /// Extends the point cloud with points from an iterator.
+    pub fn extend<I>(&mut self, iter: I) -> Result<()>
+    where
+        I: IntoIterator<Item = [f32; 3]>,
+    {
+        for point in iter {
+            self.push(point)?;
+        }
+        Ok(())
+    }
+
+    /// Appends all points from another point cloud.
+    pub fn append(&mut self, other: &PointCloudXYZ) -> Result<()> {
+        self.extend(other.iter())
+    }
+
+    /// Transforms all points in the cloud by the given transformation.
+    pub fn transform(&mut self, transform: &crate::Transform3f) -> Result<()> {
+        for i in 0..self.size() {
+            let point = self.get(i)?;
+            let transformed = transform.transform_point_array(point);
+            self.set(i, transformed)?;
+        }
+        Ok(())
+    }
+
+    /// Creates a new transformed point cloud without modifying the original.
+    pub fn transformed(&self, transform: &crate::Transform3f) -> Result<Self> {
+        let mut result = Self::new()?;
+        result.reserve(self.size());
+
+        for point in self.iter() {
+            let transformed = transform.transform_point_array(point);
+            result.push(transformed)?;
+        }
+
+        Ok(result)
     }
 
     /// Returns an iterator over the points in the cloud.
@@ -151,6 +191,24 @@ impl<'a> Iterator for PointCloudXYZIter<'a> {
 }
 
 impl<'a> ExactSizeIterator for PointCloudXYZIter<'a> {}
+
+impl<'a> IntoIterator for &'a PointCloudXYZ {
+    type Item = [f32; 3];
+    type IntoIter = PointCloudXYZIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl Extend<[f32; 3]> for PointCloudXYZ {
+    fn extend<T: IntoIterator<Item = [f32; 3]>>(&mut self, iter: T) {
+        for point in iter {
+            // Ignore errors during extend
+            let _ = self.push(point);
+        }
+    }
+}
 
 impl PointCloudXYZI {
     /// Creates a new empty point cloud.
@@ -236,6 +294,62 @@ impl PointCloudXYZI {
             .collect()
     }
 
+    /// Extends the point cloud with points from an iterator.
+    pub fn extend<I>(&mut self, iter: I) -> Result<()>
+    where
+        I: IntoIterator<Item = [f32; 4]>,
+    {
+        for point in iter {
+            self.push(point)?;
+        }
+        Ok(())
+    }
+
+    /// Appends all points from another point cloud.
+    pub fn append(&mut self, other: &PointCloudXYZI) -> Result<()> {
+        self.extend(other.iter())
+    }
+
+    /// Transforms all points in the cloud by the given transformation.
+    /// The intensity values are preserved.
+    pub fn transform(&mut self, transform: &crate::Transform3f) -> Result<()> {
+        for i in 0..self.size() {
+            let point = self.get(i)?;
+            let xyz = [point[0], point[1], point[2]];
+            let transformed_xyz = transform.transform_point_array(xyz);
+            self.set(
+                i,
+                [
+                    transformed_xyz[0],
+                    transformed_xyz[1],
+                    transformed_xyz[2],
+                    point[3],
+                ],
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Creates a new transformed point cloud without modifying the original.
+    /// The intensity values are preserved.
+    pub fn transformed(&self, transform: &crate::Transform3f) -> Result<Self> {
+        let mut result = Self::new()?;
+        result.reserve(self.size());
+
+        for point in self.iter() {
+            let xyz = [point[0], point[1], point[2]];
+            let transformed_xyz = transform.transform_point_array(xyz);
+            result.push([
+                transformed_xyz[0],
+                transformed_xyz[1],
+                transformed_xyz[2],
+                point[3],
+            ])?;
+        }
+
+        Ok(result)
+    }
+
     /// Returns an iterator over the points in the cloud.
     pub fn iter(&self) -> PointCloudXYZIIter {
         PointCloudXYZIIter {
@@ -245,6 +359,7 @@ impl PointCloudXYZI {
     }
 
     /// Internal method to get access to the underlying C++ object.
+    #[allow(dead_code)]
     pub(crate) fn as_ffi(&self) -> &ffi::PointCloudXYZI {
         &self.inner
     }
@@ -297,6 +412,24 @@ impl<'a> Iterator for PointCloudXYZIIter<'a> {
 
 impl<'a> ExactSizeIterator for PointCloudXYZIIter<'a> {}
 
+impl<'a> IntoIterator for &'a PointCloudXYZI {
+    type Item = [f32; 4];
+    type IntoIter = PointCloudXYZIIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl Extend<[f32; 4]> for PointCloudXYZI {
+    fn extend<T: IntoIterator<Item = [f32; 4]>>(&mut self, iter: T) {
+        for point in iter {
+            // Ignore errors during extend
+            let _ = self.push(point);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -321,22 +454,13 @@ mod tests {
 
     #[test]
     fn test_point_cloud_xyz_from_iterator() {
-        let points = vec![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
+        let points = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
         let cloud: PointCloudXYZ = points.iter().copied().collect();
 
         assert_eq!(cloud.size(), 3);
         assert_eq!(cloud.get(0).unwrap(), [1.0, 2.0, 3.0]);
         assert_eq!(cloud.get(1).unwrap(), [4.0, 5.0, 6.0]);
         assert_eq!(cloud.get(2).unwrap(), [7.0, 8.0, 9.0]);
-    }
-
-    #[test]
-    fn test_point_cloud_xyz_iterator() {
-        let points = vec![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
-        let cloud: PointCloudXYZ = points.iter().copied().collect();
-
-        let collected: Vec<[f32; 3]> = cloud.iter().collect();
-        assert_eq!(collected, points);
     }
 
     #[test]
@@ -355,11 +479,193 @@ mod tests {
 
     #[test]
     fn test_point_cloud_xyzi_from_iterator() {
-        let points = vec![[1.0, 2.0, 3.0, 0.1], [4.0, 5.0, 6.0, 0.2]];
+        let points = [[1.0, 2.0, 3.0, 0.1], [4.0, 5.0, 6.0, 0.2]];
         let cloud: PointCloudXYZI = points.iter().copied().collect();
 
         assert_eq!(cloud.size(), 2);
         assert_eq!(cloud.get(0).unwrap(), [1.0, 2.0, 3.0, 0.1]);
         assert_eq!(cloud.get(1).unwrap(), [4.0, 5.0, 6.0, 0.2]);
+    }
+
+    #[test]
+    fn test_point_cloud_xyz_iterator() {
+        let points = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
+        let cloud: PointCloudXYZ = points.iter().copied().collect();
+
+        // Test iter() method
+        let collected: Vec<[f32; 3]> = cloud.iter().collect();
+        assert_eq!(collected, points);
+
+        // Test IntoIterator trait
+        let mut count = 0;
+        for point in &cloud {
+            assert_eq!(point, points[count]);
+            count += 1;
+        }
+        assert_eq!(count, 3);
+
+        // Test ExactSizeIterator
+        assert_eq!(cloud.iter().len(), 3);
+    }
+
+    #[test]
+    fn test_point_cloud_xyzi_iterator() {
+        let points = [[1.0, 2.0, 3.0, 0.1], [4.0, 5.0, 6.0, 0.2]];
+        let cloud: PointCloudXYZI = points.iter().copied().collect();
+
+        // Test iter() method
+        let collected: Vec<[f32; 4]> = cloud.iter().collect();
+        assert_eq!(collected, points);
+
+        // Test IntoIterator trait
+        let mut count = 0;
+        for point in &cloud {
+            assert_eq!(point, points[count]);
+            count += 1;
+        }
+        assert_eq!(count, 2);
+
+        // Test ExactSizeIterator
+        assert_eq!(cloud.iter().len(), 2);
+    }
+
+    #[test]
+    fn test_bounds_checking() {
+        let mut cloud = PointCloudXYZ::new().unwrap();
+        cloud.push([1.0, 2.0, 3.0]).unwrap();
+        cloud.push([4.0, 5.0, 6.0]).unwrap();
+
+        // Valid access
+        assert!(cloud.get(0).is_ok());
+        assert!(cloud.get(1).is_ok());
+
+        // Out of bounds access
+        match cloud.get(2) {
+            Err(Error::IndexOutOfBounds { index }) => assert_eq!(index, 2),
+            _ => panic!("Expected IndexOutOfBounds error"),
+        }
+
+        // Out of bounds set
+        match cloud.set(2, [7.0, 8.0, 9.0]) {
+            Err(Error::IndexOutOfBounds { index }) => assert_eq!(index, 2),
+            _ => panic!("Expected IndexOutOfBounds error"),
+        }
+    }
+
+    #[test]
+    fn test_clear_and_reserve() {
+        let mut cloud = PointCloudXYZ::new().unwrap();
+
+        // Add some points
+        cloud.push([1.0, 2.0, 3.0]).unwrap();
+        cloud.push([4.0, 5.0, 6.0]).unwrap();
+        assert_eq!(cloud.size(), 2);
+
+        // Clear the cloud
+        cloud.clear();
+        assert_eq!(cloud.size(), 0);
+        assert!(cloud.is_empty());
+
+        // Reserve capacity
+        cloud.reserve(100);
+        assert!(cloud.is_empty()); // Still empty after reserve
+
+        // Can still add points after clear
+        cloud.push([7.0, 8.0, 9.0]).unwrap();
+        assert_eq!(cloud.size(), 1);
+    }
+
+    #[test]
+    fn test_batch_operations() {
+        let mut cloud = PointCloudXYZ::new().unwrap();
+
+        // Test extend with iterator
+        let points = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
+        cloud.extend(points.iter().copied()).unwrap();
+        assert_eq!(cloud.size(), 3);
+
+        // Test Extend trait
+        let more_points = vec![[10.0, 11.0, 12.0], [13.0, 14.0, 15.0]];
+        cloud.extend(more_points.iter().copied()).unwrap();
+        assert_eq!(cloud.size(), 5);
+
+        // Test append
+        let mut other_cloud = PointCloudXYZ::new().unwrap();
+        other_cloud.push([16.0, 17.0, 18.0]).unwrap();
+        other_cloud.push([19.0, 20.0, 21.0]).unwrap();
+
+        cloud.append(&other_cloud).unwrap();
+        assert_eq!(cloud.size(), 7);
+
+        // Verify all points
+        assert_eq!(cloud.get(0).unwrap(), [1.0, 2.0, 3.0]);
+        assert_eq!(cloud.get(6).unwrap(), [19.0, 20.0, 21.0]);
+    }
+
+    #[test]
+    fn test_batch_operations_xyzi() {
+        let mut cloud = PointCloudXYZI::new().unwrap();
+
+        // Test extend with iterator
+        let points = [[1.0, 2.0, 3.0, 0.1], [4.0, 5.0, 6.0, 0.2]];
+        cloud.extend(points.iter().copied()).unwrap();
+        assert_eq!(cloud.size(), 2);
+
+        // Test Extend trait
+        cloud
+            .extend(vec![[7.0, 8.0, 9.0, 0.3]].iter().copied())
+            .unwrap();
+        assert_eq!(cloud.size(), 3);
+
+        // Test append
+        let mut other_cloud = PointCloudXYZI::new().unwrap();
+        other_cloud.push([10.0, 11.0, 12.0, 0.4]).unwrap();
+
+        cloud.append(&other_cloud).unwrap();
+        assert_eq!(cloud.size(), 4);
+
+        // Verify points
+        assert_eq!(cloud.get(0).unwrap(), [1.0, 2.0, 3.0, 0.1]);
+        assert_eq!(cloud.get(3).unwrap(), [10.0, 11.0, 12.0, 0.4]);
+    }
+
+    #[test]
+    fn test_point_cloud_transformation() {
+        let mut cloud = PointCloudXYZ::new().unwrap();
+        cloud.push([1.0, 0.0, 0.0]).unwrap();
+        cloud.push([0.0, 1.0, 0.0]).unwrap();
+        cloud.push([0.0, 0.0, 1.0]).unwrap();
+
+        // Test translation
+        let translation = crate::Transform3f::from_translation(1.0, 2.0, 3.0);
+        let transformed = cloud.transformed(&translation).unwrap();
+
+        assert_eq!(transformed.get(0).unwrap(), [2.0, 2.0, 3.0]);
+        assert_eq!(transformed.get(1).unwrap(), [1.0, 3.0, 3.0]);
+        assert_eq!(transformed.get(2).unwrap(), [1.0, 2.0, 4.0]);
+
+        // Test in-place transformation
+        cloud.transform(&translation).unwrap();
+        assert_eq!(cloud.get(0).unwrap(), [2.0, 2.0, 3.0]);
+        assert_eq!(cloud.get(1).unwrap(), [1.0, 3.0, 3.0]);
+        assert_eq!(cloud.get(2).unwrap(), [1.0, 2.0, 4.0]);
+    }
+
+    #[test]
+    fn test_point_cloud_xyzi_transformation() {
+        let mut cloud = PointCloudXYZI::new().unwrap();
+        cloud.push([1.0, 0.0, 0.0, 0.5]).unwrap();
+        cloud.push([0.0, 1.0, 0.0, 0.7]).unwrap();
+
+        // Test that intensity is preserved during transformation
+        let translation = crate::Transform3f::from_translation(10.0, 20.0, 30.0);
+        let transformed = cloud.transformed(&translation).unwrap();
+
+        assert_eq!(transformed.get(0).unwrap(), [11.0, 20.0, 30.0, 0.5]);
+        assert_eq!(transformed.get(1).unwrap(), [10.0, 21.0, 30.0, 0.7]);
+
+        // Verify intensity values are preserved
+        assert_eq!(transformed.get(0).unwrap()[3], 0.5);
+        assert_eq!(transformed.get(1).unwrap()[3], 0.7);
     }
 }

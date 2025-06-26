@@ -1,10 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <array>
 #include <fast_gicp/gicp/fast_gicp.hpp>
 #include <fast_gicp/gicp/fast_vgicp.hpp>
 #include <flann/util/params.h>
+#include <memory>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -80,7 +80,6 @@ std::unique_ptr<FastVGICPI> create_fast_vgicp_i();
 
 #ifdef BUILD_VGICP_CUDA
 std::unique_ptr<FastVGICPCuda> create_fast_vgicp_cuda();
-std::unique_ptr<NDTCuda> create_ndt_cuda();
 #endif
 
 // === Registration Configuration ===
@@ -90,6 +89,10 @@ void fast_gicp_set_max_iterations(FastGICP &gicp, int max_iterations);
 void fast_gicp_set_transformation_epsilon(FastGICP &gicp, double eps);
 void fast_gicp_set_euclidean_fitness_epsilon(FastGICP &gicp, double eps);
 void fast_gicp_set_max_correspondence_distance(FastGICP &gicp, double distance);
+void fast_gicp_set_num_threads(FastGICP &gicp, int num_threads);
+void fast_gicp_set_correspondence_randomness(FastGICP &gicp, int k);
+void fast_gicp_set_regularization_method(FastGICP &gicp, int method);
+void fast_gicp_set_rotation_epsilon(FastGICP &gicp, double eps);
 
 void fast_vgicp_set_input_source(FastVGICP &vgicp, const PointCloudXYZ &cloud);
 void fast_vgicp_set_input_target(FastVGICP &vgicp, const PointCloudXYZ &cloud);
@@ -99,6 +102,10 @@ void fast_vgicp_set_euclidean_fitness_epsilon(FastVGICP &vgicp, double eps);
 void fast_vgicp_set_max_correspondence_distance(FastVGICP &vgicp,
                                                 double distance);
 void fast_vgicp_set_resolution(FastVGICP &vgicp, double resolution);
+void fast_vgicp_set_num_threads(FastVGICP &vgicp, int num_threads);
+void fast_vgicp_set_regularization_method(FastVGICP &vgicp, int method);
+void fast_vgicp_set_voxel_accumulation_mode(FastVGICP &vgicp, int mode);
+void fast_vgicp_set_neighbor_search_method(FastVGICP &vgicp, int method);
 
 #ifdef BUILD_VGICP_CUDA
 void fast_vgicp_cuda_set_input_source(FastVGICPCuda &cuda_vgicp,
@@ -147,6 +154,52 @@ int fast_vgicp_get_final_num_iterations(const FastVGICP &vgicp);
 bool fast_vgicp_cuda_has_converged(const FastVGICPCuda &cuda_vgicp);
 double fast_vgicp_cuda_get_fitness_score(const FastVGICPCuda &cuda_vgicp);
 int fast_vgicp_cuda_get_final_num_iterations(const FastVGICPCuda &cuda_vgicp);
+#endif
+
+// === NDTCuda Operations ===
+#ifdef BUILD_VGICP_CUDA
+std::unique_ptr<NDTCuda> create_ndt_cuda();
+void ndt_cuda_set_input_source(NDTCuda &ndt_cuda, const PointCloudXYZ &cloud);
+void ndt_cuda_set_input_target(NDTCuda &ndt_cuda, const PointCloudXYZ &cloud);
+void ndt_cuda_set_max_iterations(NDTCuda &ndt_cuda, int max_iterations);
+void ndt_cuda_set_transformation_epsilon(NDTCuda &ndt_cuda, double eps);
+void ndt_cuda_set_euclidean_fitness_epsilon(NDTCuda &ndt_cuda, double eps);
+void ndt_cuda_set_max_correspondence_distance(NDTCuda &ndt_cuda,
+                                              double distance);
+void ndt_cuda_set_resolution(NDTCuda &ndt_cuda, double resolution);
+void ndt_cuda_set_distance_mode(NDTCuda &ndt_cuda, int mode);
+void ndt_cuda_set_neighbor_search_method(NDTCuda &ndt_cuda, int method,
+                                         double radius);
+
+Transform4f ndt_cuda_align(NDTCuda &ndt_cuda);
+Transform4f ndt_cuda_align_with_guess(NDTCuda &ndt_cuda,
+                                      const Transform4f &guess);
+
+bool ndt_cuda_has_converged(const NDTCuda &ndt_cuda);
+double ndt_cuda_get_fitness_score(const NDTCuda &ndt_cuda);
+int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
+#else
+// Stub declarations for compatibility
+std::unique_ptr<NDTCuda> create_ndt_cuda();
+void ndt_cuda_set_input_source(NDTCuda &ndt_cuda, const PointCloudXYZ &cloud);
+void ndt_cuda_set_input_target(NDTCuda &ndt_cuda, const PointCloudXYZ &cloud);
+void ndt_cuda_set_max_iterations(NDTCuda &ndt_cuda, int max_iterations);
+void ndt_cuda_set_transformation_epsilon(NDTCuda &ndt_cuda, double eps);
+void ndt_cuda_set_euclidean_fitness_epsilon(NDTCuda &ndt_cuda, double eps);
+void ndt_cuda_set_max_correspondence_distance(NDTCuda &ndt_cuda,
+                                              double distance);
+void ndt_cuda_set_resolution(NDTCuda &ndt_cuda, double resolution);
+void ndt_cuda_set_distance_mode(NDTCuda &ndt_cuda, int mode);
+void ndt_cuda_set_neighbor_search_method(NDTCuda &ndt_cuda, int method,
+                                         double radius);
+
+Transform4f ndt_cuda_align(NDTCuda &ndt_cuda);
+Transform4f ndt_cuda_align_with_guess(NDTCuda &ndt_cuda,
+                                      const Transform4f &guess);
+
+bool ndt_cuda_has_converged(const NDTCuda &ndt_cuda);
+double ndt_cuda_get_fitness_score(const NDTCuda &ndt_cuda);
+int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
 #endif
 
 // === Transform Utilities ===
