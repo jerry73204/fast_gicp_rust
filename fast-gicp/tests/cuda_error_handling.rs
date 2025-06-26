@@ -8,7 +8,7 @@ mod tests {
     fn test_cuda_vgicp_creation_failure_handling() {
         // This test verifies that if CUDA initialization fails, we get a proper error
         // In a real scenario, this could happen if CUDA drivers are not available
-        let result = FastVGICPCuda::new();
+        let result = FastVGICPCuda::builder().build();
 
         // The creation should either succeed (if CUDA is available) or fail gracefully
         match result {
@@ -30,7 +30,7 @@ mod tests {
     #[test]
     fn test_cuda_ndt_creation_failure_handling() {
         // Similar test for NDTCuda
-        let result = NDTCuda::new();
+        let result = NDTCuda::builder().build();
 
         match result {
             Ok(_) => {
@@ -49,23 +49,16 @@ mod tests {
     #[test]
     fn test_cuda_registration_with_insufficient_points() {
         // Test behavior when trying to register point clouds with too few points
-        if let Ok(mut ndt) = NDTCuda::new() {
+        if let Ok(ndt) = NDTCuda::builder()
+            .max_iterations(10)
+            .resolution(0.1)
+            .build()
+        {
             let single_point = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0]])
                 .expect("Failed to create single point cloud");
 
-            // Set the single point as both source and target
-            ndt.set_input_source(&single_point)
-                .expect("Failed to set source");
-            ndt.set_input_target(&single_point)
-                .expect("Failed to set target");
-
-            // Configure with reasonable parameters
-            ndt.set_max_iterations(10)
-                .expect("Failed to set max iterations");
-            ndt.set_resolution(0.1).expect("Failed to set resolution");
-
             // Registration might fail or succeed with poor results
-            match ndt.align(None) {
+            match ndt.align(&single_point, &single_point) {
                 Ok(result) => {
                     // If it succeeds, the fitness score should indicate poor registration
                     println!(
@@ -92,12 +85,12 @@ mod tests {
     #[test]
     fn test_cuda_memory_stress() {
         // Test creating multiple CUDA objects to stress GPU memory
-        if let Ok(_) = NDTCuda::new() {
+        if NDTCuda::builder().build().is_ok() {
             let mut cuda_objects = Vec::new();
 
             // Try to create multiple CUDA objects
             for i in 0..5 {
-                match NDTCuda::new() {
+                match NDTCuda::builder().build() {
                     Ok(ndt) => {
                         cuda_objects.push(ndt);
                         println!("Created CUDA object {}", i + 1);
@@ -116,13 +109,12 @@ mod tests {
             );
 
             // Test that we can still use them
-            if let Some(mut ndt) = cuda_objects.into_iter().next() {
+            if let Some(ndt) = cuda_objects.into_iter().next() {
                 let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
                     .expect("Failed to create test cloud");
 
-                // Should still be able to configure the object
-                assert!(ndt.set_input_source(&cloud).is_ok());
-                assert!(ndt.set_input_target(&cloud).is_ok());
+                // Should still be able to align with the object
+                assert!(ndt.align(&cloud, &cloud).is_ok());
             }
         }
     }
@@ -130,7 +122,7 @@ mod tests {
     #[test]
     fn test_cuda_large_point_cloud_handling() {
         // Test behavior with unusually large point clouds
-        if let Ok(mut ndt) = NDTCuda::new() {
+        if let Ok(ndt) = NDTCuda::builder().resolution(1.0).max_iterations(5).build() {
             // Create a large point cloud (10,000 points)
             let mut points = Vec::new();
             for i in 0..10000 {
@@ -147,42 +139,17 @@ mod tests {
                         large_cloud.size()
                     );
 
-                    // Test setting input - this might fail due to GPU memory constraints
-                    match ndt.set_input_source(&large_cloud) {
-                        Ok(_) => {
-                            println!("Successfully set large point cloud as source");
-
-                            // Try to set as target too
-                            match ndt.set_input_target(&large_cloud) {
-                                Ok(_) => {
-                                    println!("Successfully set large point cloud as target");
-
-                                    // Configure with appropriate parameters for large clouds
-                                    ndt.set_resolution(1.0).expect("Failed to set resolution");
-                                    ndt.set_max_iterations(5)
-                                        .expect("Failed to set max iterations");
-
-                                    // Registration might succeed or fail - both are acceptable
-                                    match ndt.align(None) {
-                                        Ok(result) => {
-                                            println!(
-                                                "Large cloud registration succeeded: fitness = {}",
-                                                result.fitness_score
-                                            );
-                                            assert!(result.fitness_score.is_finite());
-                                        }
-                                        Err(e) => {
-                                            println!("Large cloud registration failed: {:?}", e);
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    println!("Failed to set large cloud as target: {:?}", e);
-                                }
-                            }
+                    // Registration might succeed or fail - both are acceptable
+                    match ndt.align(&large_cloud, &large_cloud) {
+                        Ok(result) => {
+                            println!(
+                                "Large cloud registration succeeded: fitness = {}",
+                                result.fitness_score
+                            );
+                            assert!(result.fitness_score.is_finite());
                         }
                         Err(e) => {
-                            println!("Failed to set large cloud as source: {:?}", e);
+                            println!("Large cloud registration failed: {:?}", e);
                         }
                     }
                 }
@@ -196,40 +163,19 @@ mod tests {
     #[test]
     fn test_cuda_invalid_configuration_sequences() {
         // Test various invalid configuration sequences
-        if let Ok(mut ndt) = NDTCuda::new() {
-            // Note: Calling align() without input clouds can cause segfaults in the underlying C++ library
-            // This is expected behavior as the C++ library doesn't handle this gracefully
-            // We'll test parameter validation instead
-
-            // Test that we can detect empty clouds during input setting
+        if let Ok(ndt) = NDTCuda::builder().max_iterations(5).resolution(1.0).build() {
+            // Test that we can detect empty clouds during alignment
             let empty_cloud = PointCloudXYZ::new().expect("Failed to create empty cloud");
             assert!(
-                ndt.set_input_source(&empty_cloud).is_err(),
-                "Should reject empty source cloud"
-            );
-            assert!(
-                ndt.set_input_target(&empty_cloud).is_err(),
-                "Should reject empty target cloud"
+                ndt.align(&empty_cloud, &empty_cloud).is_err(),
+                "Should reject empty source and target clouds"
             );
 
             // Test that valid clouds are accepted
             let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
                 .expect("Failed to create test cloud");
 
-            assert!(
-                ndt.set_input_source(&cloud).is_ok(),
-                "Should accept valid source cloud"
-            );
-            assert!(
-                ndt.set_input_target(&cloud).is_ok(),
-                "Should accept valid target cloud"
-            );
-
-            // Now alignment should work
-            ndt.set_max_iterations(5).expect("Failed to set iterations");
-            ndt.set_resolution(1.0).expect("Failed to set resolution");
-
-            match ndt.align(None) {
+            match ndt.align(&cloud, &cloud) {
                 Ok(result) => {
                     println!(
                         "Alignment succeeded with valid configuration: fitness = {}",
@@ -248,30 +194,29 @@ mod tests {
     #[test]
     fn test_cuda_extreme_parameter_values() {
         // Test behavior with extreme parameter values
-        if let Ok(mut ndt) = NDTCuda::new() {
-            // Test with extremely small resolution
-            match ndt.set_resolution(1e-10) {
-                Ok(_) => println!("Extremely small resolution accepted"),
-                Err(e) => println!("Extremely small resolution rejected: {:?}", e),
-            }
 
-            // Test with extremely large resolution
-            match ndt.set_resolution(1e10) {
-                Ok(_) => println!("Extremely large resolution accepted"),
-                Err(e) => println!("Extremely large resolution rejected: {:?}", e),
-            }
+        // Test with extremely small resolution
+        match NDTCuda::builder().resolution(1e-10).build() {
+            Ok(_) => println!("Extremely small resolution accepted"),
+            Err(e) => println!("Extremely small resolution rejected: {:?}", e),
+        }
 
-            // Test with extremely large max iterations
-            match ndt.set_max_iterations(1000000) {
-                Ok(_) => println!("Extremely large max iterations accepted"),
-                Err(e) => println!("Extremely large max iterations rejected: {:?}", e),
-            }
+        // Test with extremely large resolution
+        match NDTCuda::builder().resolution(1e10).build() {
+            Ok(_) => println!("Extremely large resolution accepted"),
+            Err(e) => println!("Extremely large resolution rejected: {:?}", e),
+        }
 
-            // Test with extremely small epsilon values
-            match ndt.set_transformation_epsilon(1e-20) {
-                Ok(_) => println!("Extremely small transformation epsilon accepted"),
-                Err(e) => println!("Extremely small transformation epsilon rejected: {:?}", e),
-            }
+        // Test with extremely large max iterations
+        match NDTCuda::builder().max_iterations(1000000).build() {
+            Ok(_) => println!("Extremely large max iterations accepted"),
+            Err(e) => println!("Extremely large max iterations rejected: {:?}", e),
+        }
+
+        // Test with extremely small epsilon values
+        match NDTCuda::builder().transformation_epsilon(1e-20).build() {
+            Ok(_) => println!("Extremely small transformation epsilon accepted"),
+            Err(e) => println!("Extremely small transformation epsilon rejected: {:?}", e),
         }
     }
 }

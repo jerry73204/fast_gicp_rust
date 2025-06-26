@@ -6,39 +6,39 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_creation() {
-        let ndt = NDTCuda::new().expect("Failed to create NDTCuda");
+        let ndt = NDTCuda::builder()
+            .build()
+            .expect("Failed to create NDTCuda");
         // If we get here, the NDTCuda was created successfully
-        drop(ndt);
+        let _ = ndt; // Use the variable to avoid warnings
     }
 
     #[test]
     fn test_ndt_cuda_configuration() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
+        // Test basic configuration methods with builder pattern
+        let ndt = NDTCuda::builder()
+            .max_iterations(100)
+            .transformation_epsilon(1e-6)
+            .euclidean_fitness_epsilon(1e-4)
+            .max_correspondence_distance(1.0)
+            .resolution(0.5)
+            .distance_mode(NdtDistanceMode::P2D)
+            .neighbor_search_method(NeighborSearchMethod::Direct7)
+            .build()
+            .expect("Failed to create NDTCuda with configuration");
 
-        // Test basic configuration methods
-        ndt.set_max_iterations(100)
-            .expect("Failed to set max iterations");
-        ndt.set_transformation_epsilon(1e-6)
-            .expect("Failed to set transformation epsilon");
-        ndt.set_euclidean_fitness_epsilon(1e-4)
-            .expect("Failed to set euclidean fitness epsilon");
-        ndt.set_max_correspondence_distance(1.0)
-            .expect("Failed to set max correspondence distance");
-        ndt.set_resolution(0.5).expect("Failed to set resolution");
+        // Test changing distance mode after creation
+        let ndt2 = NDTCuda::builder()
+            .distance_mode(NdtDistanceMode::D2D)
+            .build()
+            .expect("Failed to create NDTCuda with D2D mode");
 
-        // Test distance mode setting
-        ndt.set_distance_mode(NdtDistanceMode::P2D);
-        ndt.set_distance_mode(NdtDistanceMode::D2D);
-
-        // Test neighbor search method
-        ndt.set_neighbor_search_method(NeighborSearchMethod::Direct7, -1.0)
-            .expect("Failed to set neighbor search method");
+        let _ = ndt; // Use the variables to avoid warnings
+        let _ = ndt2;
     }
 
     #[test]
     fn test_ndt_cuda_registration() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
-
         // Create simple test point clouds
         let source = PointCloudXYZ::from_points(&[
             [0.0, 0.0, 0.0],
@@ -56,20 +56,18 @@ mod tests {
         ])
         .expect("Failed to create target cloud");
 
-        // Set input clouds
-        ndt.set_input_source(&source)
-            .expect("Failed to set source cloud");
-        ndt.set_input_target(&target)
-            .expect("Failed to set target cloud");
+        // Create NDT with configuration using builder pattern
+        let ndt = NDTCuda::builder()
+            .max_iterations(50)
+            .resolution(0.5)
+            .distance_mode(NdtDistanceMode::P2D)
+            .build()
+            .expect("Failed to create NDTCuda");
 
-        // Configure NDT
-        ndt.set_max_iterations(50)
-            .expect("Failed to set max iterations");
-        ndt.set_resolution(0.5).expect("Failed to set resolution");
-        ndt.set_distance_mode(NdtDistanceMode::P2D);
-
-        // Perform registration
-        let result = ndt.align(None).expect("Failed to perform registration");
+        // Perform registration with new API
+        let result = ndt
+            .align(&source, &target)
+            .expect("Failed to perform registration");
 
         // Check that we got reasonable results
         assert!(result.num_iterations > 0);
@@ -87,8 +85,6 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_with_initial_guess() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
-
         // Create test point clouds
         let source =
             PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
@@ -98,20 +94,19 @@ mod tests {
             PointCloudXYZ::from_points(&[[0.2, 0.2, 0.0], [1.2, 0.2, 0.0], [0.2, 1.2, 0.0]])
                 .expect("Failed to create target cloud");
 
-        ndt.set_input_source(&source)
-            .expect("Failed to set source cloud");
-        ndt.set_input_target(&target)
-            .expect("Failed to set target cloud");
-        ndt.set_max_iterations(30)
-            .expect("Failed to set max iterations");
-        ndt.set_resolution(0.3).expect("Failed to set resolution");
+        // Create NDT with configuration using builder pattern
+        let ndt = NDTCuda::builder()
+            .max_iterations(30)
+            .resolution(0.3)
+            .build()
+            .expect("Failed to create NDTCuda");
 
         // Create an initial guess transformation
         let initial_guess = Transform3f::from_translation(0.1, 0.1, 0.0);
 
-        // Perform registration with initial guess
+        // Perform registration with initial guess using new API
         let result = ndt
-            .align(Some(&initial_guess))
+            .align_with_guess(&source, &target, Some(&initial_guess))
             .expect("Failed to perform registration with guess");
 
         // Check results
@@ -136,66 +131,88 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_parameter_validation() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
-
-        // Test invalid parameters
-        assert!(ndt.set_max_iterations(-1).is_err());
-        assert!(ndt.set_max_iterations(0).is_err());
-        assert!(ndt.set_transformation_epsilon(-1.0).is_err());
-        assert!(ndt.set_euclidean_fitness_epsilon(-1.0).is_err());
-        assert!(ndt.set_max_correspondence_distance(-1.0).is_err());
-        assert!(ndt.set_max_correspondence_distance(0.0).is_err());
-        assert!(ndt.set_resolution(-1.0).is_err());
-        assert!(ndt.set_resolution(0.0).is_err());
-        assert!(ndt
-            .set_neighbor_search_method(NeighborSearchMethod::Direct7, -2.0)
+        // Test invalid parameters should fail during build
+        // Test with invalid iterations (0 is invalid, must be >= 1)
+        assert!(NDTCuda::builder().max_iterations(0).build().is_err());
+        assert!(NDTCuda::builder()
+            .transformation_epsilon(-1.0)
+            .build()
             .is_err());
+        assert!(NDTCuda::builder()
+            .euclidean_fitness_epsilon(-1.0)
+            .build()
+            .is_err());
+        assert!(NDTCuda::builder()
+            .max_correspondence_distance(-1.0)
+            .build()
+            .is_err());
+        assert!(NDTCuda::builder().resolution(-1.0).build().is_err());
+        // neighbor_search_method is valid by itself, so no test needed here
 
-        // Test valid parameters
-        assert!(ndt.set_max_iterations(100).is_ok());
-        assert!(ndt.set_transformation_epsilon(0.0).is_ok());
-        assert!(ndt.set_euclidean_fitness_epsilon(0.0).is_ok());
-        assert!(ndt.set_max_correspondence_distance(1.0).is_ok());
-        assert!(ndt.set_resolution(0.1).is_ok());
-        assert!(ndt
-            .set_neighbor_search_method(NeighborSearchMethod::Direct7, -1.0)
+        // Test valid parameters should succeed
+        assert!(NDTCuda::builder().max_iterations(100).build().is_ok());
+        assert!(NDTCuda::builder()
+            .transformation_epsilon(0.0)
+            .build()
+            .is_ok());
+        assert!(NDTCuda::builder()
+            .euclidean_fitness_epsilon(0.0)
+            .build()
+            .is_ok());
+        assert!(NDTCuda::builder()
+            .max_correspondence_distance(1.0)
+            .build()
+            .is_ok());
+        assert!(NDTCuda::builder().resolution(0.1).build().is_ok());
+        assert!(NDTCuda::builder()
+            .neighbor_search_method(NeighborSearchMethod::Direct7)
+            .build()
             .is_ok());
     }
 
     #[test]
     fn test_ndt_cuda_empty_cloud_error() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
+        let ndt = NDTCuda::builder()
+            .build()
+            .expect("Failed to create NDTCuda");
         let empty_cloud = PointCloudXYZ::new().expect("Failed to create empty cloud");
 
-        // Should fail with empty clouds
-        assert!(ndt.set_input_source(&empty_cloud).is_err());
-        assert!(ndt.set_input_target(&empty_cloud).is_err());
+        // Should fail with empty clouds during alignment
+        assert!(ndt.align(&empty_cloud, &empty_cloud).is_err());
     }
 
     #[test]
     fn test_ndt_cuda_distance_modes() {
-        let mut ndt = NDTCuda::new().expect("Failed to create NDTCuda");
-
         let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
             .expect("Failed to create source cloud");
 
         let target = PointCloudXYZ::from_points(&[[0.1, 0.1, 0.1], [1.1, 1.1, 1.1]])
             .expect("Failed to create target cloud");
 
-        ndt.set_input_source(&source).expect("Failed to set source");
-        ndt.set_input_target(&target).expect("Failed to set target");
-        ndt.set_max_iterations(10)
-            .expect("Failed to set max iterations");
-        ndt.set_resolution(0.5).expect("Failed to set resolution");
-
         // Test P2D mode
-        ndt.set_distance_mode(NdtDistanceMode::P2D);
-        let result_p2d = ndt.align(None).expect("Failed to align with P2D mode");
+        let ndt_p2d = NDTCuda::builder()
+            .max_iterations(10)
+            .resolution(0.5)
+            .distance_mode(NdtDistanceMode::P2D)
+            .build()
+            .expect("Failed to create NDTCuda with P2D mode");
+
+        let result_p2d = ndt_p2d
+            .align(&source, &target)
+            .expect("Failed to align with P2D mode");
         assert!(result_p2d.fitness_score.is_finite());
 
         // Test D2D mode
-        ndt.set_distance_mode(NdtDistanceMode::D2D);
-        let result_d2d = ndt.align(None).expect("Failed to align with D2D mode");
+        let ndt_d2d = NDTCuda::builder()
+            .max_iterations(10)
+            .resolution(0.5)
+            .distance_mode(NdtDistanceMode::D2D)
+            .build()
+            .expect("Failed to create NDTCuda with D2D mode");
+
+        let result_d2d = ndt_d2d
+            .align(&source, &target)
+            .expect("Failed to align with D2D mode");
         assert!(result_d2d.fitness_score.is_finite());
 
         // Both modes should produce valid results

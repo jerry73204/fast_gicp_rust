@@ -69,12 +69,9 @@ fn test_multi_scale_registration() {
         }
 
         // Test with FastGICP
-        let mut gicp = FastGICP::new().unwrap();
-        gicp.set_input_source(&source).unwrap();
-        gicp.set_input_target(&target).unwrap();
-        gicp.set_max_iterations(50).unwrap();
+        let gicp = FastGICP::builder().max_iterations(50).build().unwrap();
 
-        let result = gicp.align(None).unwrap();
+        let result = gicp.align(&source, &target).unwrap();
 
         assert!(
             result.has_converged,
@@ -135,24 +132,18 @@ fn test_bidirectional_registration() {
     }
 
     // Forward registration (source to target)
-    let mut gicp_forward = FastGICP::new().unwrap();
-    gicp_forward.set_input_source(&source).unwrap();
-    gicp_forward.set_input_target(&target).unwrap();
-    gicp_forward.set_max_iterations(50).unwrap();
+    let gicp_forward = FastGICP::builder().max_iterations(50).build().unwrap();
 
-    let forward_result = gicp_forward.align(None).unwrap();
+    let forward_result = gicp_forward.align(&source, &target).unwrap();
     assert!(
         forward_result.has_converged,
         "Forward registration should converge"
     );
 
     // Backward registration (target to source)
-    let mut gicp_backward = FastGICP::new().unwrap();
-    gicp_backward.set_input_source(&target).unwrap();
-    gicp_backward.set_input_target(&source).unwrap();
-    gicp_backward.set_max_iterations(50).unwrap();
+    let gicp_backward = FastGICP::builder().max_iterations(50).build().unwrap();
 
-    let backward_result = gicp_backward.align(None).unwrap();
+    let backward_result = gicp_backward.align(&target, &source).unwrap();
     assert!(
         backward_result.has_converged,
         "Backward registration should converge"
@@ -208,13 +199,13 @@ fn test_vgicp_resolution_impact() {
     let resolutions = [0.1, 0.2, 0.5, 1.0];
 
     for resolution in resolutions {
-        let mut vgicp = FastVGICP::new().unwrap();
-        vgicp.set_input_source(&source).unwrap();
-        vgicp.set_input_target(&target).unwrap();
-        vgicp.set_resolution(resolution).unwrap();
-        vgicp.set_max_iterations(50).unwrap();
+        let vgicp = FastVGICP::builder()
+            .resolution(resolution)
+            .max_iterations(50)
+            .build()
+            .unwrap();
 
-        let result = vgicp.align(None).unwrap();
+        let result = vgicp.align(&source, &target).unwrap();
 
         assert!(
             result.has_converged,
@@ -265,13 +256,13 @@ fn test_partial_overlap_registration() {
         transformed_target.push([t.x, t.y, t.z]).unwrap();
     }
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&transformed_target).unwrap();
-    gicp.set_max_iterations(100).unwrap();
-    gicp.set_max_correspondence_distance(0.5).unwrap(); // Limit correspondence distance
+    let gicp = FastGICP::builder()
+        .max_iterations(100)
+        .max_correspondence_distance(0.5) // Limit correspondence distance
+        .build()
+        .unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&source, &transformed_target).unwrap();
 
     // With partial overlap, we expect convergence but potentially higher error
     assert!(

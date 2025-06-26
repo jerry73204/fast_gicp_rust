@@ -1,7 +1,7 @@
-//! CUDA-accelerated point cloud registration example.
+//! CUDA-accelerated point cloud registration example using the builder pattern.
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use fast_gicp::{cuda::FastVGICPCuda, PointCloudXYZ};
+    use fast_gicp::{fast_vgicp_cuda::FastVGICPCuda, types::NeighborSearchMethod, PointCloudXYZ};
 
     println!("Fast VGICP CUDA Registration Example");
 
@@ -22,23 +22,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Created clouds with {} points each", source_cloud.size());
 
-    // Create CUDA-accelerated FastVGICP
-    let mut vgicp_cuda = FastVGICPCuda::new()?;
+    // Create CUDA-accelerated FastVGICP using the builder pattern
+    println!("Creating FastVGICPCuda with builder...");
+    let vgicp_cuda = FastVGICPCuda::builder()
+        .max_iterations(50)
+        .resolution(1.0)
+        .neighbor_search_method(NeighborSearchMethod::Direct27)
+        .build()?;
 
-    // Set input clouds
-    println!("Setting input clouds...");
-    vgicp_cuda.set_input_source(&source_cloud)?;
-    vgicp_cuda.set_input_target(&target_cloud)?;
-    println!("Input clouds set successfully");
-
-    // Configure CUDA-specific parameters
-    vgicp_cuda.set_max_iterations(50)?;
-    vgicp_cuda.set_resolution(1.0)?;
-    vgicp_cuda.set_neighbor_search_method(1)?; // GPU_BRUTEFORCE
+    println!("FastVGICPCuda configured with builder pattern");
 
     // Perform CUDA registration
     println!("Performing CUDA registration...");
-    let result = vgicp_cuda.align(None)?;
+    let result = vgicp_cuda.align(&source_cloud, &target_cloud)?;
 
     println!("Registration completed!");
     println!("Converged: {}", result.has_converged);

@@ -94,12 +94,9 @@ fn transform_error(t1: &Transform3f, t2: &Transform3f) -> (f64, f64) {
 fn test_fast_gicp_identity_transform() {
     let cloud = create_test_cube();
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&cloud).unwrap();
-    gicp.set_input_target(&cloud).unwrap();
-    gicp.set_max_iterations(10).unwrap();
+    let gicp = FastGICP::builder().max_iterations(10).build().unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&cloud, &cloud).unwrap();
 
     assert!(
         result.has_converged,
@@ -129,13 +126,13 @@ fn test_fast_gicp_translation_only() {
     let translation = Transform3f::from_translation(0.5, -0.3, 0.2);
     let target = transform_cloud(&source, &translation);
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&target).unwrap();
-    gicp.set_max_iterations(50).unwrap();
-    gicp.set_transformation_epsilon(1e-8).unwrap();
+    let gicp = FastGICP::builder()
+        .max_iterations(50)
+        .transformation_epsilon(1e-8)
+        .build()
+        .unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&source, &target).unwrap();
 
     assert!(
         result.has_converged,
@@ -166,15 +163,15 @@ fn test_fast_gicp_rotation_only() {
     let rotation = Transform3f::from_rotation_matrix(&rotation_matrix.into_inner());
     let target = transform_cloud(&source, &rotation);
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&target).unwrap();
-    gicp.set_max_iterations(100).unwrap();
-    gicp.set_transformation_epsilon(1e-8).unwrap();
-    gicp.set_rotation_epsilon(1e-6).unwrap();
-    gicp.set_max_correspondence_distance(1.0).unwrap();
+    let gicp = FastGICP::builder()
+        .max_iterations(100)
+        .transformation_epsilon(1e-8)
+        .rotation_epsilon(1e-6)
+        .max_correspondence_distance(1.0)
+        .build()
+        .unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&source, &target).unwrap();
 
     assert!(result.has_converged, "GICP should converge for rotation");
 
@@ -210,14 +207,14 @@ fn test_fast_gicp_combined_transform() {
 
     let target = transform_cloud(&source, &transform);
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&target).unwrap();
-    gicp.set_max_iterations(100).unwrap();
-    gicp.set_transformation_epsilon(1e-8).unwrap();
-    gicp.set_euclidean_fitness_epsilon(1e-6).unwrap();
+    let gicp = FastGICP::builder()
+        .max_iterations(100)
+        .transformation_epsilon(1e-8)
+        .euclidean_fitness_epsilon(1e-6)
+        .build()
+        .unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&source, &target).unwrap();
 
     assert!(result.has_converged, "GICP should converge");
 
@@ -242,12 +239,11 @@ fn test_fast_gicp_with_initial_guess() {
         nalgebra::Rotation3::<f32>::from_axis_angle(&Vector3::x_axis(), PI / 5.0).into_inner(),
     );
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&target).unwrap();
-    gicp.set_max_iterations(30).unwrap();
+    let gicp = FastGICP::builder().max_iterations(30).build().unwrap();
 
-    let result = gicp.align(Some(&initial_guess)).unwrap();
+    let result = gicp
+        .align_with_guess(&source, &target, Some(&initial_guess))
+        .unwrap();
 
     assert!(
         result.has_converged,
@@ -277,13 +273,13 @@ fn test_fast_gicp_regularization_methods() {
     ];
 
     for method in methods {
-        let mut gicp = FastGICP::new().unwrap();
-        gicp.set_input_source(&source).unwrap();
-        gicp.set_input_target(&target).unwrap();
-        gicp.set_regularization_method(method);
-        gicp.set_max_iterations(50).unwrap();
+        let gicp = FastGICP::builder()
+            .regularization_method(method)
+            .max_iterations(50)
+            .build()
+            .unwrap();
 
-        let result = gicp.align(None).unwrap();
+        let result = gicp.align(&source, &target).unwrap();
 
         assert!(
             result.has_converged,
@@ -309,13 +305,13 @@ fn test_fast_vgicp_basic() {
     );
     let target = transform_cloud(&source, &transform);
 
-    let mut vgicp = FastVGICP::new().unwrap();
-    vgicp.set_input_source(&source).unwrap();
-    vgicp.set_input_target(&target).unwrap();
-    vgicp.set_resolution(0.2).unwrap(); // Voxel size
-    vgicp.set_max_iterations(50).unwrap();
+    let vgicp = FastVGICP::builder()
+        .resolution(0.2) // Voxel size
+        .max_iterations(50)
+        .build()
+        .unwrap();
 
-    let result = vgicp.align(None).unwrap();
+    let result = vgicp.align(&source, &target).unwrap();
 
     assert!(result.has_converged, "VGICP should converge");
 
@@ -346,13 +342,13 @@ fn test_fast_gicp_correspondence_randomness() {
     let transform = Transform3f::from_translation(0.05, 0.05, 0.05);
     let target = transform_cloud(&source, &transform);
 
-    let mut gicp = FastGICP::new().unwrap();
-    gicp.set_input_source(&source).unwrap();
-    gicp.set_input_target(&target).unwrap();
-    gicp.set_correspondence_randomness(10).unwrap(); // Sample 10 random correspondences
-    gicp.set_max_iterations(50).unwrap();
+    let gicp = FastGICP::builder()
+        .correspondence_randomness(10) // Sample 10 random correspondences
+        .max_iterations(50)
+        .build()
+        .unwrap();
 
-    let result = gicp.align(None).unwrap();
+    let result = gicp.align(&source, &target).unwrap();
 
     assert!(
         result.has_converged,
@@ -372,13 +368,13 @@ fn test_fast_gicp_multithreading() {
     // Test with different thread counts
     for num_threads in [1, 2, 4, 0] {
         // 0 means use all available threads
-        let mut gicp = FastGICP::new().unwrap();
-        gicp.set_input_source(&source).unwrap();
-        gicp.set_input_target(&target).unwrap();
-        gicp.set_num_threads(num_threads).unwrap();
-        gicp.set_max_iterations(20).unwrap();
+        let gicp = FastGICP::builder()
+            .num_threads(num_threads)
+            .max_iterations(20)
+            .build()
+            .unwrap();
 
-        let result = gicp.align(None).unwrap();
+        let result = gicp.align(&source, &target).unwrap();
 
         assert!(
             result.has_converged,

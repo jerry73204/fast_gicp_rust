@@ -585,7 +585,7 @@ mod tests {
         assert_eq!(cloud.size(), 3);
 
         // Test Extend trait
-        let more_points = vec![[10.0, 11.0, 12.0], [13.0, 14.0, 15.0]];
+        let more_points = [[10.0, 11.0, 12.0], [13.0, 14.0, 15.0]];
         cloud.extend(more_points.iter().copied()).unwrap();
         assert_eq!(cloud.size(), 5);
 
@@ -613,7 +613,7 @@ mod tests {
 
         // Test Extend trait
         cloud
-            .extend(vec![[7.0, 8.0, 9.0, 0.3]].iter().copied())
+            .extend([[7.0, 8.0, 9.0, 0.3]].iter().copied())
             .unwrap();
         assert_eq!(cloud.size(), 3);
 

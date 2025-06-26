@@ -1,4 +1,4 @@
-//! Basic point cloud registration example using FastGICP.
+//! Basic point cloud registration example using FastGICP with the builder pattern.
 
 use fast_gicp::{FastGICP, PointCloudXYZ, Transform3f};
 use nalgebra::{UnitQuaternion, Vector3};
@@ -43,22 +43,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let target_cloud: PointCloudXYZ = target_points.into_iter().collect();
     println!("Created target cloud with {} points", target_cloud.size());
 
-    // Create and configure FastGICP
-    let mut gicp = FastGICP::new()?;
+    // Create and configure FastGICP using the builder pattern
+    let gicp = FastGICP::builder()
+        .max_iterations(50)
+        .transformation_epsilon(1e-6)
+        .euclidean_fitness_epsilon(1e-6)
+        .max_correspondence_distance(1.0)
+        .build()?;
 
-    // Set input clouds
-    gicp.set_input_source(&source_cloud)?;
-    gicp.set_input_target(&target_cloud)?;
-
-    // Configure registration parameters
-    gicp.set_max_iterations(50)?;
-    gicp.set_transformation_epsilon(1e-6)?;
-    gicp.set_euclidean_fitness_epsilon(1e-6)?;
-    gicp.set_max_correspondence_distance(1.0)?;
+    println!("FastGICP configured with builder pattern");
 
     // Perform registration with identity initial guess
     println!("Performing registration...");
-    let result = gicp.align(None)?;
+    let result = gicp.align(&source_cloud, &target_cloud)?;
 
     // Display results
     println!("Registration completed!");
