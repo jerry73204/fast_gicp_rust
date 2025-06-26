@@ -4,14 +4,20 @@ members = [
     "fast-gicp-sys",
     "fast-gicp",
 ]
+exclude = [
+    "fast_gicp",
+]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-authors = ["Lin Hsiang-Hui <jerry73204@gmail.com>"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/fast_gicp_rust"
+authors = ["Fast GICP Rust Contributors"]
+license = "BSD-3-Clause"
+repository = "https://github.com/jerry73204/fast_gicp_rust.git"
 description = "Rust wrapper for fast_gicp point cloud registration library"
+readme = "README.md"
+homepage = "https://github.com/jerry73204/fast_gicp_rust"
+documentation = "https://docs.rs/fast-gicp"
 keywords = ["robotics", "point-cloud", "registration", "icp", "gicp"]
 categories = ["science::robotics", "algorithms", "external-ffi-bindings"]
 
