@@ -1,6 +1,6 @@
 # Makefile for fast_gicp_rust project format
 
-.PHONY: build-no-cuda build-cuda test-no-cuda test-cuda clean help lint
+.PHONY: build-no-cuda build-cuda test-no-cuda test-cuda clean help lint format doc
 
 # Default target
 help:
@@ -9,6 +9,9 @@ help:
 	@echo "  build-cuda     - Build all targets with CUDA support"
 	@echo "  test-no-cuda   - Run all tests without CUDA support"
 	@echo "  test-cuda      - Run all tests with CUDA support"
+	@echo "  lint           - Run clippy linter with strict warnings"
+	@echo "  format         - Format code with rustfmt"
+	@echo "  doc            - Generate documentation"
 	@echo "  clean          - Clean build artifacts"
 	@echo "  help           - Show this help message"
 
@@ -33,7 +36,10 @@ clean:
 	cargo clean
 
 lint:
-	cargo clippy --all-targets --features cuda
+	cargo clippy --all-targets --all-features -- -D warnings
 
 format:
 	cargo +nightly fmt
+
+doc:
+	cargo doc --no-deps --all-features
