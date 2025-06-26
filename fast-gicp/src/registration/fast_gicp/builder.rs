@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_builder_defaults() {
-        let _gicp = FastGICPBuilder::new().build().unwrap();
+        let _gicp = FastGICPBuilder::new().build();
         // Builder creates a valid instance with defaults
     }
 
@@ -169,8 +169,7 @@ mod tests {
             .correspondence_randomness(10)
             .regularization_method(RegularizationMethod::Frobenius)
             .rotation_epsilon(1e-4)
-            .build()
-            .unwrap();
+            .build();
     }
 
     #[test]

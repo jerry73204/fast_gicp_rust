@@ -49,10 +49,10 @@ pub struct FastVGICP {
 
 impl FastVGICP {
     /// Creates a new FastVGICP instance with default configuration.
-    pub fn new() -> Result<Self> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             config: FastVGICPConfig::default(),
-        })
+        }
     }
 
     /// Creates a new FastVGICP instance with custom configuration.
@@ -140,7 +140,7 @@ impl FastVGICP {
 
 impl Default for FastVGICP {
     fn default() -> Self {
-        Self::new().expect("Failed to create default FastVGICP")
+        Self::new()
     }
 }
 
@@ -162,12 +162,12 @@ mod tests {
 
     #[test]
     fn test_fast_vgicp_creation() {
-        let _vgicp = FastVGICP::new().unwrap();
+        let _vgicp = FastVGICP::new();
     }
 
     #[test]
     fn test_fast_vgicp_align() {
-        let vgicp = FastVGICP::new().unwrap();
+        let vgicp = FastVGICP::new();
         let source = create_test_cloud();
 
         // Create a slightly translated target

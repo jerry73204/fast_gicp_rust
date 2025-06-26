@@ -55,10 +55,10 @@ pub struct FastGICP {
 
 impl FastGICP {
     /// Creates a new FastGICP instance with default configuration.
-    pub fn new() -> Result<Self> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             config: FastGICPConfig::default(),
-        })
+        }
     }
 
     /// Creates a new FastGICP instance with custom configuration.
@@ -142,7 +142,7 @@ impl FastGICP {
 
 impl Default for FastGICP {
     fn default() -> Self {
-        Self::new().expect("Failed to create default FastGICP")
+        Self::new()
     }
 }
 
@@ -164,12 +164,12 @@ mod tests {
 
     #[test]
     fn test_fast_gicp_creation() {
-        let _gicp = FastGICP::new().unwrap();
+        let _gicp = FastGICP::new();
     }
 
     #[test]
     fn test_fast_gicp_align() {
-        let gicp = FastGICP::new().unwrap();
+        let gicp = FastGICP::new();
         let source = create_test_cloud();
 
         // Create a slightly translated target
@@ -190,8 +190,8 @@ mod tests {
 
     #[test]
     fn test_fast_gicp_empty_cloud_error() {
-        let gicp = FastGICP::new().unwrap();
-        let empty_cloud = PointCloudXYZ::new().unwrap();
+        let gicp = FastGICP::new();
+        let empty_cloud = PointCloudXYZ::new();
         let valid_cloud = create_test_cloud();
 
         // Test empty source
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_fast_gicp_reusable() {
-        let gicp = FastGICP::new().unwrap();
+        let gicp = FastGICP::new();
         let source1 = create_test_cloud();
         let target1 = create_test_cloud();
 

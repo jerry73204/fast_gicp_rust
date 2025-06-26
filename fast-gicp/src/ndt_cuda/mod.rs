@@ -45,10 +45,10 @@ pub struct NDTCuda {
 
 impl NDTCuda {
     /// Creates a new NDTCuda instance with default configuration.
-    pub fn new() -> Result<Self> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             config: NDTCudaConfig::default(),
-        })
+        }
     }
 
     /// Creates a new NDTCuda instance with custom configuration.
@@ -129,7 +129,7 @@ impl NDTCuda {
 
 impl Default for NDTCuda {
     fn default() -> Self {
-        Self::new().expect("Failed to create default NDTCuda")
+        Self::new()
     }
 }
 
@@ -151,12 +151,12 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_creation() {
-        let _ndt = NDTCuda::new().unwrap();
+        let _ndt = NDTCuda::new();
     }
 
     #[test]
     fn test_ndt_cuda_align() {
-        let ndt = NDTCuda::new().unwrap();
+        let ndt = NDTCuda::new();
         let source = create_test_cloud();
         let target = create_test_cloud();
 

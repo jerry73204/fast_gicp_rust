@@ -58,14 +58,12 @@ fn test_multi_scale_registration() {
             nalgebra::Rotation3::<f32>::from_axis_angle(&Vector3::y_axis(), PI / 6.0).into_inner(),
         );
 
-        let mut target = PointCloudXYZ::new().unwrap();
+        let mut target = PointCloudXYZ::new();
         for i in 0..source.size() {
             let p = source.get(i).unwrap();
             let v = Vector3::new(p[0], p[1], p[2]);
             let transformed = transform.transform_point(&v);
-            target
-                .push([transformed.x, transformed.y, transformed.z])
-                .unwrap();
+            target.push([transformed.x, transformed.y, transformed.z]);
         }
 
         // Test with FastGICP
@@ -121,14 +119,12 @@ fn test_bidirectional_registration() {
         nalgebra::Rotation3::<f32>::from_axis_angle(&Vector3::z_axis(), PI / 8.0).into_inner(),
     );
 
-    let mut target = PointCloudXYZ::new().unwrap();
+    let mut target = PointCloudXYZ::new();
     for i in 0..source.size() {
         let p = source.get(i).unwrap();
         let v = Vector3::new(p[0], p[1], p[2]);
         let transformed = transform.transform_point(&v);
-        target
-            .push([transformed.x, transformed.y, transformed.z])
-            .unwrap();
+        target.push([transformed.x, transformed.y, transformed.z]);
     }
 
     // Forward registration (source to target)
@@ -186,14 +182,12 @@ fn test_vgicp_resolution_impact() {
         nalgebra::Rotation3::<f32>::from_axis_angle(&Vector3::x_axis(), PI / 10.0).into_inner(),
     );
 
-    let mut target = PointCloudXYZ::new().unwrap();
+    let mut target = PointCloudXYZ::new();
     for i in 0..source.size() {
         let p = source.get(i).unwrap();
         let v = Vector3::new(p[0], p[1], p[2]);
         let transformed = transform.transform_point(&v);
-        target
-            .push([transformed.x, transformed.y, transformed.z])
-            .unwrap();
+        target.push([transformed.x, transformed.y, transformed.z]);
     }
 
     let resolutions = [0.1, 0.2, 0.5, 1.0];
@@ -233,27 +227,27 @@ fn test_partial_overlap_registration() {
     let full_cloud = generate_synthetic_bunny(1000);
 
     // Create source as first 70% of points
-    let mut source = PointCloudXYZ::new().unwrap();
+    let mut source = PointCloudXYZ::new();
     for i in 0..(full_cloud.size() * 7 / 10) {
         let p = full_cloud.get(i).unwrap();
-        source.push(p).unwrap();
+        source.push(p);
     }
 
     // Create target as last 70% of points (40% overlap)
-    let mut target = PointCloudXYZ::new().unwrap();
+    let mut target = PointCloudXYZ::new();
     for i in (full_cloud.size() * 3 / 10)..full_cloud.size() {
         let p = full_cloud.get(i).unwrap();
-        target.push(p).unwrap();
+        target.push(p);
     }
 
     // Apply small transformation to target
     let transform = Transform3f::from_translation(0.05, 0.05, 0.05);
-    let mut transformed_target = PointCloudXYZ::new().unwrap();
+    let mut transformed_target = PointCloudXYZ::new();
     for i in 0..target.size() {
         let p = target.get(i).unwrap();
         let v = Vector3::new(p[0], p[1], p[2]);
         let t = transform.transform_point(&v);
-        transformed_target.push([t.x, t.y, t.z]).unwrap();
+        transformed_target.push([t.x, t.y, t.z]);
     }
 
     let gicp = FastGICP::builder()

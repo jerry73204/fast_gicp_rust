@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_builder_defaults() {
-        let _vgicp = FastVGICPBuilder::new().build().unwrap();
+        let _vgicp = FastVGICPBuilder::new().build();
         // Builder creates a valid instance with defaults
     }
 
@@ -176,8 +176,7 @@ mod tests {
             .regularization_method(RegularizationMethod::Frobenius)
             .voxel_accumulation_mode(VoxelAccumulationMode::Additive)
             .neighbor_search_method(NeighborSearchMethod::Direct7)
-            .build()
-            .unwrap();
+            .build();
     }
 
     #[test]

@@ -17,15 +17,15 @@
 //! ```no_run
 //! use fast_gicp::{types::RegularizationMethod, FastGICP, PointCloudXYZ};
 //!
-//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])?;
-//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]])?;
+//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
+//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]]);
 //!
 //! // Create and configure FastGICP using the builder pattern
 //! let gicp = FastGICP::builder()
 //!     .max_iterations(50)
 //!     .transformation_epsilon(1e-6)
 //!     .regularization_method(RegularizationMethod::Frobenius)
-//!     .build()?;
+//!     .build();
 //!
 //! let result = gicp.align(&source, &target)?;
 //! println!("Final transformation: {:?}", result.final_transformation);
@@ -37,13 +37,13 @@
 //! ```no_run
 //! use fast_gicp::{types::VoxelAccumulationMode, FastVGICP, PointCloudXYZ};
 //!
-//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])?;
-//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]])?;
+//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
+//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]]);
 //!
 //! let vgicp = FastVGICP::builder()
 //!     .resolution(0.5)
 //!     .voxel_accumulation_mode(VoxelAccumulationMode::Additive)
-//!     .build()?;
+//!     .build();
 //!
 //! let result = vgicp.align(&source, &target)?;
 //! # Ok::<(), fast_gicp::Error>(())
@@ -56,13 +56,13 @@
 //! # {
 //! use fast_gicp::{types::NeighborSearchMethod, FastVGICPCuda, PointCloudXYZ};
 //!
-//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])?;
-//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]])?;
+//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
+//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]]);
 //!
 //! let cuda_vgicp = FastVGICPCuda::builder()
 //!     .resolution(1.0)
 //!     .neighbor_search_method(NeighborSearchMethod::Direct27)
-//!     .build()?;
+//!     .build();
 //!
 //! let result = cuda_vgicp.align(&source, &target)?;
 //! # }
@@ -76,10 +76,10 @@
 //! ```no_run
 //! use fast_gicp::{FastGICP, PointCloudXYZ, Transform3f};
 //!
-//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])?;
-//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]])?;
+//! let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
+//! let target = PointCloudXYZ::from_points(&[[0.1, 0.0, 0.0], [1.1, 0.0, 0.0]]);
 //!
-//! let gicp = FastGICP::new()?;
+//! let gicp = FastGICP::new();
 //! let result = gicp.align(&source, &target)?;
 //! println!("Final transformation: {:?}", result.final_transformation);
 //! # Ok::<(), fast_gicp::Error>(())
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_point_cloud_creation() {
-        let cloud = PointCloudXYZ::new().expect("Failed to create point cloud");
+        let cloud = PointCloudXYZ::new();
         assert_eq!(cloud.size(), 0);
         assert!(cloud.is_empty());
     }

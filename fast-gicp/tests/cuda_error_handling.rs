@@ -54,8 +54,7 @@ mod tests {
             .resolution(0.1)
             .build()
         {
-            let single_point = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0]])
-                .expect("Failed to create single point cloud");
+            let single_point = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0]]);
 
             // Registration might fail or succeed with poor results
             match ndt.align(&single_point, &single_point) {
@@ -110,8 +109,7 @@ mod tests {
 
             // Test that we can still use them
             if let Some(ndt) = cuda_objects.into_iter().next() {
-                let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-                    .expect("Failed to create test cloud");
+                let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]);
 
                 // Should still be able to align with the object
                 assert!(ndt.align(&cloud, &cloud).is_ok());
@@ -132,29 +130,23 @@ mod tests {
                 points.push([x, y, z]);
             }
 
-            match PointCloudXYZ::from_points(&points) {
-                Ok(large_cloud) => {
-                    println!(
-                        "Created large point cloud with {} points",
-                        large_cloud.size()
-                    );
+            let large_cloud = PointCloudXYZ::from_points(&points);
+            println!(
+                "Created large point cloud with {} points",
+                large_cloud.size()
+            );
 
-                    // Registration might succeed or fail - both are acceptable
-                    match ndt.align(&large_cloud, &large_cloud) {
-                        Ok(result) => {
-                            println!(
-                                "Large cloud registration succeeded: fitness = {}",
-                                result.fitness_score
-                            );
-                            assert!(result.fitness_score.is_finite());
-                        }
-                        Err(e) => {
-                            println!("Large cloud registration failed: {:?}", e);
-                        }
-                    }
+            // Registration might succeed or fail - both are acceptable
+            match ndt.align(&large_cloud, &large_cloud) {
+                Ok(result) => {
+                    println!(
+                        "Large cloud registration succeeded: fitness = {}",
+                        result.fitness_score
+                    );
+                    assert!(result.fitness_score.is_finite());
                 }
                 Err(e) => {
-                    println!("Failed to create large point cloud: {:?}", e);
+                    println!("Large cloud registration failed: {:?}", e);
                 }
             }
         }
@@ -165,15 +157,14 @@ mod tests {
         // Test various invalid configuration sequences
         if let Ok(ndt) = NDTCuda::builder().max_iterations(5).resolution(1.0).build() {
             // Test that we can detect empty clouds during alignment
-            let empty_cloud = PointCloudXYZ::new().expect("Failed to create empty cloud");
+            let empty_cloud = PointCloudXYZ::new();
             assert!(
                 ndt.align(&empty_cloud, &empty_cloud).is_err(),
                 "Should reject empty source and target clouds"
             );
 
             // Test that valid clouds are accepted
-            let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-                .expect("Failed to create test cloud");
+            let cloud = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]);
 
             match ndt.align(&cloud, &cloud) {
                 Ok(result) => {

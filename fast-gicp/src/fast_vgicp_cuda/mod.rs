@@ -38,10 +38,10 @@ pub struct FastVGICPCuda {
 
 impl FastVGICPCuda {
     /// Creates a new FastVGICPCuda instance with default configuration.
-    pub fn new() -> Result<Self> {
-        Ok(Self {
+    pub fn new() -> Self {
+        Self {
             config: FastVGICPCudaConfig::default(),
-        })
+        }
     }
 
     /// Creates a new FastVGICPCuda instance with custom configuration.
@@ -120,7 +120,7 @@ impl FastVGICPCuda {
 
 impl Default for FastVGICPCuda {
     fn default() -> Self {
-        Self::new().expect("Failed to create default FastVGICPCuda")
+        Self::new()
     }
 }
 
@@ -142,12 +142,12 @@ mod tests {
 
     #[test]
     fn test_fast_vgicp_cuda_creation() {
-        let _vgicp = FastVGICPCuda::new().unwrap();
+        let _vgicp = FastVGICPCuda::new();
     }
 
     #[test]
     fn test_fast_vgicp_cuda_align() {
-        let vgicp = FastVGICPCuda::new().unwrap();
+        let vgicp = FastVGICPCuda::new();
         let source = create_test_cloud();
         let target = create_test_cloud();
 

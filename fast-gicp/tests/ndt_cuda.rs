@@ -6,9 +6,7 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_creation() {
-        let ndt = NDTCuda::builder()
-            .build()
-            .expect("Failed to create NDTCuda");
+        let ndt = NDTCuda::builder().build().unwrap();
         // If we get here, the NDTCuda was created successfully
         let _ = ndt; // Use the variable to avoid warnings
     }
@@ -25,13 +23,13 @@ mod tests {
             .distance_mode(NdtDistanceMode::P2D)
             .neighbor_search_method(NeighborSearchMethod::Direct7)
             .build()
-            .expect("Failed to create NDTCuda with configuration");
+            .unwrap();
 
         // Test changing distance mode after creation
         let ndt2 = NDTCuda::builder()
             .distance_mode(NdtDistanceMode::D2D)
             .build()
-            .expect("Failed to create NDTCuda with D2D mode");
+            .unwrap();
 
         let _ = ndt; // Use the variables to avoid warnings
         let _ = ndt2;
@@ -45,16 +43,14 @@ mod tests {
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [1.0, 1.0, 0.0],
-        ])
-        .expect("Failed to create source cloud");
+        ]);
 
         let target = PointCloudXYZ::from_points(&[
             [0.1, 0.1, 0.0],
             [1.1, 0.1, 0.0],
             [0.1, 1.1, 0.0],
             [1.1, 1.1, 0.0],
-        ])
-        .expect("Failed to create target cloud");
+        ]);
 
         // Create NDT with configuration using builder pattern
         let ndt = NDTCuda::builder()
@@ -62,7 +58,7 @@ mod tests {
             .resolution(0.5)
             .distance_mode(NdtDistanceMode::P2D)
             .build()
-            .expect("Failed to create NDTCuda");
+            .unwrap();
 
         // Perform registration with new API
         let result = ndt
@@ -87,19 +83,17 @@ mod tests {
     fn test_ndt_cuda_with_initial_guess() {
         // Create test point clouds
         let source =
-            PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
-                .expect("Failed to create source cloud");
+            PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
 
         let target =
-            PointCloudXYZ::from_points(&[[0.2, 0.2, 0.0], [1.2, 0.2, 0.0], [0.2, 1.2, 0.0]])
-                .expect("Failed to create target cloud");
+            PointCloudXYZ::from_points(&[[0.2, 0.2, 0.0], [1.2, 0.2, 0.0], [0.2, 1.2, 0.0]]);
 
         // Create NDT with configuration using builder pattern
         let ndt = NDTCuda::builder()
             .max_iterations(30)
             .resolution(0.3)
             .build()
-            .expect("Failed to create NDTCuda");
+            .unwrap();
 
         // Create an initial guess transformation
         let initial_guess = Transform3f::from_translation(0.1, 0.1, 0.0);
@@ -172,10 +166,8 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_empty_cloud_error() {
-        let ndt = NDTCuda::builder()
-            .build()
-            .expect("Failed to create NDTCuda");
-        let empty_cloud = PointCloudXYZ::new().expect("Failed to create empty cloud");
+        let ndt = NDTCuda::builder().build().unwrap();
+        let empty_cloud = PointCloudXYZ::new();
 
         // Should fail with empty clouds during alignment
         assert!(ndt.align(&empty_cloud, &empty_cloud).is_err());
@@ -183,11 +175,9 @@ mod tests {
 
     #[test]
     fn test_ndt_cuda_distance_modes() {
-        let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-            .expect("Failed to create source cloud");
+        let source = PointCloudXYZ::from_points(&[[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]);
 
-        let target = PointCloudXYZ::from_points(&[[0.1, 0.1, 0.1], [1.1, 1.1, 1.1]])
-            .expect("Failed to create target cloud");
+        let target = PointCloudXYZ::from_points(&[[0.1, 0.1, 0.1], [1.1, 1.1, 1.1]]);
 
         // Test P2D mode
         let ndt_p2d = NDTCuda::builder()
@@ -195,7 +185,7 @@ mod tests {
             .resolution(0.5)
             .distance_mode(NdtDistanceMode::P2D)
             .build()
-            .expect("Failed to create NDTCuda with P2D mode");
+            .unwrap();
 
         let result_p2d = ndt_p2d
             .align(&source, &target)
@@ -208,7 +198,7 @@ mod tests {
             .resolution(0.5)
             .distance_mode(NdtDistanceMode::D2D)
             .build()
-            .expect("Failed to create NDTCuda with D2D mode");
+            .unwrap();
 
         let result_d2d = ndt_d2d
             .align(&source, &target)

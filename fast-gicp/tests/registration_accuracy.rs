@@ -54,20 +54,18 @@ fn create_dense_cloud(size: usize) -> PointCloudXYZ {
 
 /// Apply a transformation to a point cloud
 fn transform_cloud(cloud: &PointCloudXYZ, transform: &Transform3f) -> PointCloudXYZ {
-    let mut transformed = PointCloudXYZ::new().unwrap();
+    let mut transformed = PointCloudXYZ::new();
     transformed.reserve(cloud.size());
 
     for i in 0..cloud.size() {
         let point = cloud.get(i).unwrap();
         let transformed_point =
             transform.transform_point(&Vector3::new(point[0], point[1], point[2]));
-        transformed
-            .push([
-                transformed_point.x,
-                transformed_point.y,
-                transformed_point.z,
-            ])
-            .unwrap();
+        transformed.push([
+            transformed_point.x,
+            transformed_point.y,
+            transformed_point.z,
+        ]);
     }
 
     transformed
