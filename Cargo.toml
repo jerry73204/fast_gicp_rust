@@ -26,17 +26,17 @@ categories = ["science::robotics", "algorithms", "external-ffi-bindings"]
 cxx = "1.0"
 cmake = "0.1"
 pkg-config = "0.3"
-bindgen = "0.69"
+bindgen = "0.72"
 
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 
 # Math libraries
-nalgebra = "0.32"
+nalgebra = "0.33"
 
 # Testing and benchmarking
-criterion = "0.5"
+criterion = "0.6"
 
 [profile.release]
 opt-level = 3
