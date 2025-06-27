@@ -7,6 +7,3 @@
 
 # Rust
 /target/
-
-# Vendored sources (only for development)
-/fast-gicp-sys/vendor/
