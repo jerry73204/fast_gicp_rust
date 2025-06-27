@@ -2,6 +2,36 @@ use std::{env, path::PathBuf};
 #[cfg(feature = "cuda")]
 use std::{path::Path, process::Command};
 
+/// Get the location of vendored fast_gicp sources
+/// Always uses vendored sources to ensure consistent builds
+fn get_fast_gicp_dir() -> PathBuf {
+    let vendor_dir = PathBuf::from("vendor/fast_gicp");
+
+    // Check if vendor directory exists with the ready marker
+    if !vendor_dir.exists() || !vendor_dir.join(".vendor_ready").exists() {
+        panic!(
+            "Vendored fast_gicp sources not found!\n\
+            \n\
+            Please run the vendor preparation script first:\n\
+            \n\
+            From the project root:\n\
+                ./scripts/prepare-vendor.sh\n\
+            \n\
+            Or from this directory:\n\
+                ../scripts/prepare-vendor.sh\n\
+            \n\
+            This will copy the necessary C++ sources from the git submodule."
+        );
+    }
+
+    println!(
+        "cargo:warning=Using vendored fast_gicp sources from: {}",
+        vendor_dir.display()
+    );
+
+    vendor_dir
+}
+
 /// Find CUDA installation directory
 #[cfg(feature = "cuda")]
 fn find_cuda_root() -> Option<String> {
@@ -135,10 +165,14 @@ fn detect_cuda_architectures() -> Option<String> {
 }
 
 fn main() {
-    // Tell cargo to rerun this build script if the wrapper changes
+    // Get the fast_gicp source directory
+    let fast_gicp_dir = get_fast_gicp_dir();
+
+    // Tell cargo to rerun this build script if sources change
     println!("cargo:rerun-if-changed=src/wrapper.cpp");
     println!("cargo:rerun-if-changed=include/wrapper.h");
-    println!("cargo:rerun-if-changed=../fast_gicp");
+    println!("cargo:rerun-if-changed={}", fast_gicp_dir.display());
+    println!("cargo:rerun-if-changed=vendor");
 
     // Get output directory
     let _out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -163,7 +197,7 @@ fn main() {
     println!("cargo:rustc-link-lib=flann_cpp");
 
     // Configure CMAKE
-    let mut cmake_config = cmake::Config::new("../fast_gicp");
+    let mut cmake_config = cmake::Config::new(&fast_gicp_dir);
 
     // Basic CMake configuration
     cmake_config
@@ -287,7 +321,7 @@ fn main() {
         .file("src/wrapper.cpp")
         .include("include")
         .include(format!("{}/include", fast_gicp_build.display()))
-        .include("../fast_gicp/include")
+        .include(fast_gicp_dir.join("include"))
         .includes(&eigen.include_paths)
         .includes(&pcl.include_paths)
         .flag_if_supported("-std=c++17")

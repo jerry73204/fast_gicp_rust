@@ -12,6 +12,13 @@ keywords.workspace = true
 categories.workspace = true
 build = "build.rs"
 links = "fast_gicp"
+include = [
+    "src/**/*",
+    "include/**/*",
+    "build.rs",
+    "Cargo.toml",
+    "vendor/**/*",
+]
 
 [features]
 default = ["openmp"]
