@@ -96,6 +96,19 @@ let cuda_vgicp = FastVGICPCuda::builder()
 
 Full API documentation is available on [docs.rs](https://docs.rs/fast-gicp).
 
+## Building from Source
+
+```bash
+git clone https://github.com/jerry73204/fast_gicp_rust
+cd fast_gicp_rust
+git submodule update --init --recursive
+
+# Prepare vendored C++ sources (required)
+./scripts/prepare-vendor.sh
+
+cargo build --release
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
