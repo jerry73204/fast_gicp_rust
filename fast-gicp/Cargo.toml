@@ -20,7 +20,7 @@ bindgen = ["fast-gicp-sys/bindgen"]  # Regenerate bindings
 docs-only = ["fast-gicp-sys/docs-only"]  # Documentation-only mode
 
 [dependencies]
-fast-gicp-sys = { version = "0.1.0", path = "../fast-gicp-sys" }
+fast-gicp-sys = { version = "0.2.0", path = "../fast-gicp-sys" }
 cxx = "1.0"
 thiserror.workspace = true
 nalgebra.workspace = true
