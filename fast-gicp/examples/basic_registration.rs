@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Calculate translation error
     let translation_error = (estimated_transform.translation.vector - translation).norm();
-    println!("Translation error: {:.6} units", translation_error);
+    println!("Translation error: {translation_error:.6} units");
 
     // Calculate rotation error (angle difference)
     let rotation_error = (estimated_transform.rotation.inverse() * rotation).angle();

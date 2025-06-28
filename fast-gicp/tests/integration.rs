@@ -36,9 +36,9 @@ fn generate_synthetic_bunny(num_points: usize) -> PointCloudXYZ {
     let mut rng = StdRng::seed_from_u64(42); // Deterministic for testing
 
     for point in &mut points {
-        point[0] += rng.gen_range(-0.01..0.01);
-        point[1] += rng.gen_range(-0.01..0.01);
-        point[2] += rng.gen_range(-0.01..0.01);
+        point[0] += rng.random_range(-0.01..0.01);
+        point[1] += rng.random_range(-0.01..0.01);
+        point[2] += rng.random_range(-0.01..0.01);
     }
 
     points.into_iter().collect()
@@ -73,8 +73,7 @@ fn test_multi_scale_registration() {
 
         assert!(
             result.has_converged,
-            "GICP should converge for {} points",
-            size
+            "GICP should converge for {size} points"
         );
 
         // Calculate error
@@ -96,16 +95,11 @@ fn test_multi_scale_registration() {
 
         assert!(
             trans_diff < expected_trans_err,
-            "Translation error for {} points should be < {}, got {}",
-            size,
-            expected_trans_err,
-            trans_diff
+            "Translation error for {size} points should be < {expected_trans_err}, got {trans_diff}"
         );
         assert!(
             rot_diff < 0.05,
-            "Rotation error for {} points should be < 0.05, got {}",
-            size,
-            rot_diff
+            "Rotation error for {size} points should be < 0.05, got {rot_diff}"
         );
     }
 }
@@ -163,13 +157,11 @@ fn test_bidirectional_registration() {
 
     assert!(
         trans_diff < 0.1,
-        "Composed translation should be near identity, got {}",
-        trans_diff
+        "Composed translation should be near identity, got {trans_diff}"
     );
     assert!(
         rot_diff < 0.1,
-        "Composed rotation should be near identity, got {}",
-        rot_diff
+        "Composed rotation should be near identity, got {rot_diff}"
     );
 }
 
@@ -203,8 +195,7 @@ fn test_vgicp_resolution_impact() {
 
         assert!(
             result.has_converged,
-            "VGICP should converge with resolution {}",
-            resolution
+            "VGICP should converge with resolution {resolution}"
         );
 
         // Coarser resolutions may have higher error
@@ -214,9 +205,7 @@ fn test_vgicp_resolution_impact() {
 
         assert!(
             trans_diff < expected_error.max(0.3),
-            "Translation error with resolution {} should be reasonable, got {}",
-            resolution,
-            trans_diff
+            "Translation error with resolution {resolution} should be reasonable, got {trans_diff}"
         );
     }
 }

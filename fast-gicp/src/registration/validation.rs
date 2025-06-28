@@ -13,7 +13,7 @@ where
 {
     if value <= T::default() {
         return Err(Error::InvalidParameter {
-            message: format!("{} must be positive, got: {}", name, value),
+            message: format!("{name} must be positive, got: {value}"),
         });
     }
     Ok(())
@@ -27,7 +27,7 @@ where
 {
     if value < T::default() {
         return Err(Error::InvalidParameter {
-            message: format!("{} must be non-negative, got: {}", name, value),
+            message: format!("{name} must be non-negative, got: {value}"),
         });
     }
     Ok(())
@@ -40,10 +40,7 @@ where
 {
     if value < min || value > max {
         return Err(Error::InvalidParameter {
-            message: format!(
-                "{} must be between {} and {}, got: {}",
-                name, min, max, value
-            ),
+            message: format!("{name} must be between {min} and {max}, got: {value}"),
         });
     }
     Ok(())
@@ -53,7 +50,7 @@ where
 pub(crate) fn validate_point_cloud_xyz(cloud: &PointCloudXYZ, name: &str) -> Result<(), Error> {
     if cloud.is_empty() {
         return Err(Error::InvalidParameter {
-            message: format!("{} point cloud cannot be empty", name),
+            message: format!("{name} point cloud cannot be empty"),
         });
     }
     Ok(())
@@ -64,7 +61,7 @@ pub(crate) fn validate_point_cloud_xyz(cloud: &PointCloudXYZ, name: &str) -> Res
 pub(crate) fn validate_point_cloud_xyzi(cloud: &PointCloudXYZI, name: &str) -> Result<(), Error> {
     if cloud.is_empty() {
         return Err(Error::InvalidParameter {
-            message: format!("{} point cloud cannot be empty", name),
+            message: format!("{name} point cloud cannot be empty"),
         });
     }
     Ok(())
@@ -75,7 +72,7 @@ pub(crate) fn validate_point_cloud_xyzi(cloud: &PointCloudXYZI, name: &str) -> R
 pub(crate) fn validate_epsilon(value: f64, name: &str) -> Result<(), Error> {
     if value <= 0.0 {
         return Err(Error::InvalidParameter {
-            message: format!("{} must be positive, got: {}", name, value),
+            message: format!("{name} must be positive, got: {value}"),
         });
     }
     if value > 1.0 {
@@ -102,8 +99,7 @@ pub(crate) fn validate_neighbor_radius(radius: f64) -> Result<(), Error> {
     if radius < -1.0 {
         return Err(Error::InvalidParameter {
             message: format!(
-                "Neighbor search radius must be -1.0 (default) or positive, got: {}",
-                radius
+                "Neighbor search radius must be -1.0 (default) or positive, got: {radius}"
             ),
         });
     }

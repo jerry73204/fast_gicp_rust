@@ -52,15 +52,15 @@ fn test_regularization_method_conversions() {
 fn test_enum_debug_output() {
     // Ensure Debug trait provides useful output
     let method = RegularizationMethod::MinEig;
-    let debug_str = format!("{:?}", method);
+    let debug_str = format!("{method:?}");
     assert_eq!(debug_str, "MinEig");
 
     let mode = VoxelAccumulationMode::Additive;
-    let debug_str = format!("{:?}", mode);
+    let debug_str = format!("{mode:?}");
     assert_eq!(debug_str, "Additive");
 
     let search = NeighborSearchMethod::Direct27;
-    let debug_str = format!("{:?}", search);
+    let debug_str = format!("{search:?}");
     assert_eq!(debug_str, "Direct27");
 }
 

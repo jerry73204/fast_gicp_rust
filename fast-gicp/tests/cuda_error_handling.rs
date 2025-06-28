@@ -18,7 +18,7 @@ mod tests {
             }
             Err(e) => {
                 // CUDA is not available or failed to initialize
-                println!("FastVGICPCuda creation failed as expected: {:?}", e);
+                println!("FastVGICPCuda creation failed as expected: {e:?}");
                 assert!(matches!(
                     e,
                     Error::CppError { .. } | Error::FeatureNotAvailable { .. }
@@ -37,7 +37,7 @@ mod tests {
                 println!("CUDA NDT created successfully");
             }
             Err(e) => {
-                println!("NDTCuda creation failed as expected: {:?}", e);
+                println!("NDTCuda creation failed as expected: {e:?}");
                 assert!(matches!(
                     e,
                     Error::CppError { .. } | Error::FeatureNotAvailable { .. }
@@ -72,10 +72,7 @@ mod tests {
                 }
                 Err(e) => {
                     // Registration failure is also acceptable for insufficient data
-                    println!(
-                        "Registration failed as expected with insufficient points: {:?}",
-                        e
-                    );
+                    println!("Registration failed as expected with insufficient points: {e:?}");
                 }
             }
         }
@@ -95,7 +92,7 @@ mod tests {
                         println!("Created CUDA object {}", i + 1);
                     }
                     Err(e) => {
-                        println!("Failed to create CUDA object {}: {:?}", i + 1, e);
+                        println!("Failed to create CUDA object {}: {e:?}", i + 1);
                         break;
                     }
                 }
@@ -146,7 +143,7 @@ mod tests {
                     assert!(result.fitness_score.is_finite());
                 }
                 Err(e) => {
-                    println!("Large cloud registration failed: {:?}", e);
+                    println!("Large cloud registration failed: {e:?}");
                 }
             }
         }
@@ -175,7 +172,7 @@ mod tests {
                     assert!(result.fitness_score.is_finite());
                 }
                 Err(e) => {
-                    println!("Alignment failed even with valid configuration: {:?}", e);
+                    println!("Alignment failed even with valid configuration: {e:?}");
                     // This is also acceptable - NDT might not converge with simple test data
                 }
             }
@@ -189,25 +186,25 @@ mod tests {
         // Test with extremely small resolution
         match NDTCuda::builder().resolution(1e-10).build() {
             Ok(_) => println!("Extremely small resolution accepted"),
-            Err(e) => println!("Extremely small resolution rejected: {:?}", e),
+            Err(e) => println!("Extremely small resolution rejected: {e:?}"),
         }
 
         // Test with extremely large resolution
         match NDTCuda::builder().resolution(1e10).build() {
             Ok(_) => println!("Extremely large resolution accepted"),
-            Err(e) => println!("Extremely large resolution rejected: {:?}", e),
+            Err(e) => println!("Extremely large resolution rejected: {e:?}"),
         }
 
         // Test with extremely large max iterations
         match NDTCuda::builder().max_iterations(1000000).build() {
             Ok(_) => println!("Extremely large max iterations accepted"),
-            Err(e) => println!("Extremely large max iterations rejected: {:?}", e),
+            Err(e) => println!("Extremely large max iterations rejected: {e:?}"),
         }
 
         // Test with extremely small epsilon values
         match NDTCuda::builder().transformation_epsilon(1e-20).build() {
             Ok(_) => println!("Extremely small transformation epsilon accepted"),
-            Err(e) => println!("Extremely small transformation epsilon rejected: {:?}", e),
+            Err(e) => println!("Extremely small transformation epsilon rejected: {e:?}"),
         }
     }
 }

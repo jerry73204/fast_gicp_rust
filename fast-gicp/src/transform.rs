@@ -404,8 +404,7 @@ mod tests {
         let result_translation = identity.translation();
         assert!(
             result_translation.norm() < 1e-6,
-            "Translation should be near zero, got {:?}",
-            result_translation
+            "Translation should be near zero, got {result_translation:?}"
         );
     }
 }

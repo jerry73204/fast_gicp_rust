@@ -142,13 +142,11 @@ fn test_fast_gicp_translation_only() {
     // Based on C++ test expectations
     assert!(
         trans_err < 0.1,
-        "Translation error should be < 0.1, got {}",
-        trans_err
+        "Translation error should be < 0.1, got {trans_err}"
     );
     assert!(
         rot_err < 0.01,
-        "Rotation error should be < 0.01 radians, got {}",
-        rot_err
+        "Rotation error should be < 0.01 radians, got {rot_err}"
     );
 }
 
@@ -176,20 +174,18 @@ fn test_fast_gicp_rotation_only() {
     let (trans_err, rot_err) = transform_error(&result.final_transformation, &rotation);
 
     println!("Rotation only test:");
-    println!("  Translation error: {}", trans_err);
-    println!("  Rotation error: {} radians", rot_err);
+    println!("  Translation error: {trans_err}");
+    println!("  Rotation error: {rot_err} radians");
     println!("  Converged: {}", result.has_converged);
     println!("  Fitness score: {}", result.fitness_score);
 
     assert!(
         trans_err < 0.1,
-        "Translation error should be < 0.1, got {}",
-        trans_err
+        "Translation error should be < 0.1, got {trans_err}"
     );
     assert!(
         rot_err < 0.05,
-        "Rotation error should be < 0.05 radians, got {}",
-        rot_err
+        "Rotation error should be < 0.05 radians, got {rot_err}"
     );
 }
 
@@ -281,15 +277,13 @@ fn test_fast_gicp_regularization_methods() {
 
         assert!(
             result.has_converged,
-            "GICP should converge with {:?} regularization",
-            method
+            "GICP should converge with {method:?} regularization"
         );
 
         let (trans_err, _) = transform_error(&result.final_transformation, &transform);
         assert!(
             trans_err < 0.2,
-            "Translation error should be reasonable with {:?}",
-            method
+            "Translation error should be reasonable with {method:?}"
         );
     }
 }
@@ -317,20 +311,18 @@ fn test_fast_vgicp_basic() {
 
     // VGICP may be slightly less accurate due to voxelization
     println!("VGICP test:");
-    println!("  Translation error: {}", trans_err);
-    println!("  Rotation error: {} radians", rot_err);
+    println!("  Translation error: {trans_err}");
+    println!("  Rotation error: {rot_err} radians");
     println!("  Converged: {}", result.has_converged);
     println!("  Fitness score: {}", result.fitness_score);
 
     assert!(
         trans_err < 0.2,
-        "Translation error should be < 0.2, got {}",
-        trans_err
+        "Translation error should be < 0.2, got {trans_err}"
     );
     assert!(
         rot_err < 0.1,
-        "Rotation error should be < 0.1 radians, got {}",
-        rot_err
+        "Rotation error should be < 0.1 radians, got {rot_err}"
     );
 }
 
@@ -376,15 +368,13 @@ fn test_fast_gicp_multithreading() {
 
         assert!(
             result.has_converged,
-            "GICP should converge with {} threads",
-            num_threads
+            "GICP should converge with {num_threads} threads"
         );
 
         let (trans_err, _) = transform_error(&result.final_transformation, &transform);
         assert!(
             trans_err < 0.1,
-            "Translation error should be < 0.1 with {} threads",
-            num_threads
+            "Translation error should be < 0.1 with {num_threads} threads"
         );
     }
 }
