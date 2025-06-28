@@ -1,15 +1,6 @@
-//! Low-level FFI bindings for the fast_gicp C++ library.
-//!
-//! This crate provides unsafe bindings to the fast_gicp C++ library through the cxx crate.
-//! For a safe, high-level API, use the `fast-gicp` crate instead.
+// This file contains the cxx::bridge definition used for C++ compilation.
+// It's separate from lib.rs to ensure cxx_build always has access to the bridge definition.
 
-// Configuration based on features:
-// - Default: Use cxx::bridge directly with C++ compilation
-// - docs-only: Use pre-generated stub (no C++ compilation)
-// - bindgen: Regenerate stubs (for maintainers)
-
-// Normal builds: use actual cxx::bridge directly
-#[cfg(not(feature = "docs-only"))]
 #[cxx::bridge]
 pub mod ffi {
     // FFI-safe structs
@@ -251,41 +242,5 @@ pub mod ffi {
         fn transform_from_translation(x: f32, y: f32, z: f32) -> Transform4f;
         fn transform_multiply(a: &Transform4f, b: &Transform4f) -> Transform4f;
         fn transform_inverse(t: &Transform4f) -> Transform4f;
-    }
-}
-
-// Docs-only builds: use appropriate stub based on CUDA feature
-#[cfg(all(feature = "docs-only", not(feature = "cuda")))]
-include!("generated/stub.rs");
-
-#[cfg(all(feature = "docs-only", feature = "cuda"))]
-include!("generated/stub_cuda.rs");
-
-// Re-export the types for convenience
-pub use ffi::{Point3f, Point4f, Transform4f};
-
-#[cfg(test)]
-mod test;
-
-#[cfg(feature = "docs-only")]
-#[cfg(test)]
-mod docs_only_tests {
-    use super::ffi::{Point3f, Point4f, Transform4f};
-
-    #[test]
-    fn test_types_exist() {
-        // Test that basic types can be created
-        let _point3f = Point3f {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-        };
-        let _point4f = Point4f {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-            intensity: 4.0,
-        };
-        let _transform = Transform4f { data: [0.0; 16] };
     }
 }

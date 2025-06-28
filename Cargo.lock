@@ -306,6 +306,8 @@ dependencies = [
  "cxx",
  "cxx-build",
  "pkg-config",
+ "quote",
+ "syn",
 ]
 
 [[package]]

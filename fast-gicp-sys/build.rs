@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 fn main() {
     // Validate exclusive features
@@ -28,7 +28,7 @@ fn main() {
                 true
             }
             Err(e) => {
-                println!("cargo:warning=CUDA setup failed: {}", e);
+                println!("cargo:warning=CUDA setup failed: {e}");
                 println!("cargo:warning=Building without CUDA support");
                 false
             }
@@ -40,10 +40,10 @@ fn main() {
     compile_cpp_wrapper(&pcl, cuda_enabled);
     link_system_libraries(&pcl, cuda_enabled);
 
-    // Regenerate bindings if bindgen feature is enabled
+    // Regenerate stubs if bindgen feature is enabled
     if cfg!(feature = "bindgen") {
-        println!("cargo:warning=Regenerating bindings from C++ headers");
-        generate_bindings();
+        println!("cargo:warning=Regenerating stubs from C++ headers");
+        generate_stubs();
     }
 }
 
@@ -61,7 +61,8 @@ fn compile_cpp_wrapper(pcl: &pkg_config::Library, cuda_enabled: bool) {
     let fast_gicp_dir = get_fast_gicp_dir();
 
     // Build our wrapper using cxx-build
-    let mut cxx_build = cxx_build::bridge("src/lib.rs");
+    // Always use bridge.rs for C++ compilation to ensure headers are generated correctly
+    let mut cxx_build = cxx_build::bridge("src/bridge.rs");
     cxx_build
         .file("src/wrapper.cpp")
         .include("include")
@@ -86,7 +87,7 @@ fn compile_cpp_wrapper(pcl: &pkg_config::Library, cuda_enabled: bool) {
 
             let cuda_include = format!("{}/include", cuda_info.root);
             cxx_build.include(&cuda_include);
-            println!("cargo:warning=Added CUDA include: {}", cuda_include);
+            println!("cargo:warning=Added CUDA include: {cuda_include}");
         }
     }
 
@@ -121,67 +122,237 @@ fn compile_cpp_wrapper(pcl: &pkg_config::Library, cuda_enabled: bool) {
     println!("cargo:rustc-link-lib=fast_gicp_wrapper");
 }
 
-/// Generate bindings from C++ headers (requires system dependencies)
-fn generate_bindings() {
-    use std::{fs, path::Path};
+/// Generate stubs from C++ headers (requires system dependencies)
+fn generate_stubs() {
+    use std::fs;
+    use syn::parse_file;
 
-    // This requires PCL and Eigen3 to be installed
-    let _pcl = pkg_config::Config::new()
-        .atleast_version("1.8")
-        .probe("pcl_common-1.12")
-        .expect("PCL library required for bindgen - please install PCL development package");
+    println!("cargo:warning=Parsing cxx::bridge definition from lib.rs");
 
-    let _eigen = pkg_config::Config::new()
-        .atleast_version("3.0")
-        .probe("eigen3")
-        .expect("Eigen3 library required for bindgen - please install Eigen3 development package");
+    // Parse the cxx::bridge definition directly from lib.rs
+    let lib_content = fs::read_to_string("src/lib.rs").expect("Failed to read src/lib.rs");
+    let syntax = parse_file(&lib_content).expect("Failed to parse src/lib.rs");
 
-    // Get output directory from cargo
-    let Ok(out_dir_str) = env::var("OUT_DIR") else {
-        panic!("OUT_DIR environment variable not set");
-    };
-    let out_dir = PathBuf::from(out_dir_str);
+    // Extract the cxx::bridge module
+    let bridge_mod =
+        find_cxx_bridge_module(&syntax).expect("Failed to find cxx::bridge module in lib.rs");
 
-    // After compilation, copy generated files to src
-    let cxx_include_dir = out_dir.join("cxxbridge/include/fast-gicp-sys/src");
-    let cxx_src_dir = out_dir.join("cxxbridge/sources/fast-gicp-sys/src");
+    println!("cargo:warning=Generating dual stub variants");
 
-    // Create a bindings directory
-    let bindings_dir = Path::new("src/generated");
-    if let Err(e) = fs::create_dir_all(bindings_dir) {
-        println!("cargo:warning=Failed to create bindings directory: {}", e);
-    }
+    // Create generated directory if it doesn't exist
+    fs::create_dir_all("src/generated").expect("Failed to create generated directory");
 
-    // Helper function to copy files from a directory
-    fn copy_files_from_dir(source_dir: &Path, dest_dir: &Path) {
-        if !source_dir.exists() {
-            return;
+    // Generate stub version without CUDA (docs-only)
+    let stub = generate_stub_bindings(&bridge_mod, false);
+    fs::write("src/generated/stub.rs", format_with_rustfmt(stub)).expect("Failed to write stub.rs");
+
+    // Generate stub version with CUDA (docs-only + cuda)
+    let stub_cuda = generate_stub_bindings(&bridge_mod, true);
+    fs::write("src/generated/stub_cuda.rs", format_with_rustfmt(stub_cuda))
+        .expect("Failed to write stub_cuda.rs");
+
+    println!("cargo:warning=Generated stubs have been updated in src/generated/");
+    println!("cargo:warning=Please verify with: cargo expand --lib > expanded.rs");
+}
+
+/// Find the cxx::bridge module in the parsed file
+fn find_cxx_bridge_module(file: &syn::File) -> Option<syn::ItemMod> {
+    use syn::Item;
+    for item in &file.items {
+        if let Item::Mod(item_mod) = item {
+            // Look for the ffi module with cxx::bridge attribute
+            if item_mod.ident == "ffi" {
+                // It should have cxx::bridge attribute
+                let has_cxx_bridge = item_mod.attrs.iter().any(|attr| {
+                    if let syn::Meta::Path(path) = &attr.meta {
+                        if let Some(seg) = path.segments.first() {
+                            return seg.ident == "cxx";
+                        }
+                    }
+                    false
+                });
+
+                if has_cxx_bridge {
+                    return Some(item_mod.clone());
+                }
+            }
         }
+    }
+    None
+}
 
-        let Ok(entries) = fs::read_dir(source_dir) else {
-            return;
-        };
+/// Generate stub bindings with unreachable!() implementations
+fn generate_stub_bindings(bridge_mod: &syn::ItemMod, include_cuda: bool) -> String {
+    use quote::quote;
+    use syn::{ForeignItem, ForeignItemType, Item};
 
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let Some(filename) = path.file_name() else {
-                continue;
-            };
+    let mut stub_items = vec![];
 
-            let dest = dest_dir.join(filename);
-            if let Err(e) = fs::copy(&path, &dest) {
-                println!("cargo:warning=Failed to copy {}: {}", path.display(), e);
-            } else {
-                println!("cargo:warning=Generated {}", dest.display());
+    // Add imports
+    stub_items.push(quote! {
+        use std::pin::Pin;
+    });
+
+    // Process the module content
+    if let Some((_, items)) = &bridge_mod.content {
+        for item in items {
+            match item {
+                // Handle struct definitions (Transform4f, Point3f, Point4f)
+                Item::Struct(s) => {
+                    stub_items.push(quote! { #s });
+                }
+
+                // Handle the unsafe extern "C++" block
+                Item::ForeignMod(foreign_mod) => {
+                    for foreign_item in &foreign_mod.items {
+                        match foreign_item {
+                            // Opaque types: type Foo; → pub struct Foo { _private: [u8; 0] }
+                            ForeignItem::Type(ForeignItemType { ident, .. }) => {
+                                // Check if this is a CUDA-specific type
+                                let is_cuda_type = ident.to_string().contains("Cuda");
+
+                                // Skip CUDA types if not including CUDA
+                                if is_cuda_type && !include_cuda {
+                                    continue;
+                                }
+
+                                stub_items.push(quote! {
+                                    #[repr(C)]
+                                    pub struct #ident {
+                                        _private: [u8; 0],
+                                    }
+                                });
+                            }
+
+                            // Functions: generate stub with unreachable!()
+                            ForeignItem::Fn(func) => {
+                                // Check if function has cfg(feature = "cuda") attribute
+                                let is_cuda_specific = func.attrs.iter().any(is_cuda_cfg_attribute);
+
+                                // Skip CUDA items if not including CUDA
+                                if is_cuda_specific && !include_cuda {
+                                    continue;
+                                }
+
+                                let sig = &func.sig;
+                                let vis = &func.vis;
+                                let attrs = &func.attrs;
+
+                                stub_items.push(quote! {
+                                    #(#attrs)*
+                                    #[allow(unused_variables, dead_code)]
+                                    #vis #sig {
+                                        unreachable!("docs-only stub")
+                                    }
+                                });
+                            }
+
+                            _ => {}
+                        }
+                    }
+                }
+
+                _ => {}
             }
         }
     }
 
-    // Copy header and source files
-    copy_files_from_dir(&cxx_include_dir, bindings_dir);
-    copy_files_from_dir(&cxx_src_dir, bindings_dir);
+    // Add UniquePtr stub type
+    stub_items.push(quote! {
+        /// CXX UniquePtr type (stub implementation)
+        pub struct UniquePtr<T> {
+            _ptr: *mut T,
+            _marker: std::marker::PhantomData<T>,
+        }
 
-    println!("cargo:warning=Bindings generation complete - files saved to src/generated/");
+        impl<T> UniquePtr<T> {
+            /// Create a null UniquePtr
+            pub fn null() -> Self {
+                Self {
+                    _ptr: std::ptr::null_mut(),
+                    _marker: std::marker::PhantomData,
+                }
+            }
+        }
+
+        unsafe impl<T> Send for UniquePtr<T> where T: Send {}
+        unsafe impl<T> Sync for UniquePtr<T> where T: Sync {}
+    });
+
+    // Generate the ffi module
+    quote! {
+        /// FFI bindings stub for documentation generation.
+        ///
+        /// This module provides type definitions for documentation purposes when
+        /// building on docs.rs where C++ dependencies are not available.
+        pub mod ffi {
+            #(#stub_items)*
+        }
+    }
+    .to_string()
+}
+
+/// Check if an attribute is #[cfg(feature = "cuda")]
+fn is_cuda_cfg_attribute(attr: &syn::Attribute) -> bool {
+    // Check if this is a cfg attribute
+    if !attr.path().is_ident("cfg") {
+        return false;
+    }
+
+    // Parse the attribute arguments
+    let mut is_cuda = false;
+    let _ = attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("feature") {
+            let value = meta.value()?;
+            let s: syn::LitStr = value.parse()?;
+            if s.value() == "cuda" {
+                is_cuda = true;
+            }
+        }
+        Ok(())
+    });
+
+    is_cuda
+}
+
+/// Format code using rustfmt
+fn format_with_rustfmt(code: String) -> String {
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+
+    let mut child = Command::new("rustfmt")
+        .arg("--emit=stdout")
+        .arg("--edition=2021")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn rustfmt");
+
+    // Write code to rustfmt's stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin
+            .write_all(code.as_bytes())
+            .expect("Failed to write to rustfmt");
+        drop(stdin); // Close stdin to signal EOF
+    }
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for rustfmt");
+
+    if !output.status.success() {
+        eprintln!(
+            "rustfmt failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        eprintln!("Using unformatted code");
+        return code;
+    }
+
+    String::from_utf8(output.stdout).unwrap_or(code)
 }
 
 /// Link to system libraries (PCL, Eigen3, FLANN, etc.)
@@ -212,7 +383,7 @@ fn link_system_libraries(pcl: &pkg_config::Library, cuda_enabled: bool) {
         #[cfg(feature = "cuda")]
         {
             if let Err(e) = setup_cuda(&mut cmake_config) {
-                println!("cargo:warning=CUDA CMake setup failed: {}", e);
+                println!("cargo:warning=CUDA CMake setup failed: {e}");
                 // This shouldn't happen since we already probed CUDA, but handle gracefully
                 cmake_config.define("BUILD_VGICP_CUDA", "OFF");
             }
@@ -439,8 +610,8 @@ fn setup_cuda(cmake_config: &mut cmake::Config) -> Result<(), String> {
     let cuda_info = probe_cuda()?;
     let cuda_path = &cuda_info.root;
 
-    println!("cargo:rustc-link-search=native={}/lib64", cuda_path);
-    println!("cargo:rustc-link-search=native={}/lib", cuda_path);
+    println!("cargo:rustc-link-search=native={cuda_path}/lib64");
+    println!("cargo:rustc-link-search=native={cuda_path}/lib");
 
     println!(
         "cargo:warning=Found CUDA {} at: {}",
@@ -448,20 +619,24 @@ fn setup_cuda(cmake_config: &mut cmake::Config) -> Result<(), String> {
     );
 
     // Configure CUDA toolkit paths
-    cmake_config.define("CMAKE_CUDA_COMPILER", format!("{}/bin/nvcc", cuda_path));
+    cmake_config.define("CMAKE_CUDA_COMPILER", format!("{cuda_path}/bin/nvcc"));
     cmake_config.define("CUDA_TOOLKIT_ROOT_DIR", cuda_path);
     cmake_config.define(
         "CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES",
-        format!("{}/include", cuda_path),
+        format!("{cuda_path}/include"),
     );
     cmake_config.define("CUDAToolkit_ROOT", cuda_path);
 
     // Set environment variables
-    cmake_config.env("CUDACXX", format!("{}/bin/nvcc", cuda_path));
+    cmake_config.env("CUDACXX", format!("{cuda_path}/bin/nvcc"));
     cmake_config.env("CUDA_ROOT", cuda_path);
     cmake_config.env(
         "PATH",
-        format!("{}/bin:{}", cuda_path, env::var("PATH").unwrap_or_default()),
+        format!(
+            "{}/bin:{}",
+            cuda_path,
+            std::env::var("PATH").unwrap_or_default()
+        ),
     );
 
     // Link CUDA libraries
@@ -505,7 +680,7 @@ fn detect_cuda_architectures() -> Option<String> {
 
     // Try nvidia-smi
     let Ok(output) = Command::new("nvidia-smi")
-        .args(&["--query-gpu=compute_cap", "--format=csv,noheader"])
+        .args(["--query-gpu=compute_cap", "--format=csv,noheader"])
         .output()
     else {
         return None;

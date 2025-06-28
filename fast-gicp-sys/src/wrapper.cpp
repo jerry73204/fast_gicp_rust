@@ -1,4 +1,4 @@
-#include "fast-gicp-sys/src/lib.rs.h"
+#include "fast-gicp-sys/src/bridge.rs.h"
 #include <Eigen/Dense>
 #include <stdexcept>
 
