@@ -1,6 +1,6 @@
 //! Basic test of minimal FFI bindings
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "docs-only")))]
 mod tests {
     use crate::ffi;
 

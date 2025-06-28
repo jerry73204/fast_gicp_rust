@@ -16,6 +16,8 @@ categories.workspace = true
 default = ["openmp"]
 openmp = ["fast-gicp-sys/openmp"]
 cuda = ["fast-gicp-sys/cuda"]
+bindgen = ["fast-gicp-sys/bindgen"]  # Regenerate bindings
+docs-only = ["fast-gicp-sys/docs-only"]  # Documentation-only mode
 
 [dependencies]
 fast-gicp-sys = { version = "0.1.0", path = "../fast-gicp-sys" }
@@ -34,5 +36,9 @@ required-features = []
 [[example]]
 name = "cuda_registration"
 required-features = ["cuda"]
+
+[package.metadata.docs.rs]
+no-default-features = true
+features = ["docs-only"]
 
 

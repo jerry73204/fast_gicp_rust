@@ -87,34 +87,44 @@
 
 /// Point cloud and registration modules
 pub mod error;
+
+#[cfg(not(feature = "docs-only"))]
 pub mod point_cloud;
+#[cfg(not(feature = "docs-only"))]
 pub mod registration;
+#[cfg(not(feature = "docs-only"))]
 pub mod transform;
+
 pub mod types;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 pub mod fast_vgicp_cuda;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 pub mod ndt_cuda;
 
 // Re-exports for convenience
 pub use error::{Error, Result};
+
+#[cfg(not(feature = "docs-only"))]
 pub use point_cloud::{PointCloudXYZ, PointCloudXYZI};
+#[cfg(not(feature = "docs-only"))]
 pub use registration::{FastGICP, FastVGICP, RegistrationResult};
+#[cfg(not(feature = "docs-only"))]
 pub use transform::Transform3f;
+
 pub use types::{NeighborSearchMethod, RegularizationMethod, VoxelAccumulationMode};
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 pub use types::{NdtDistanceMode, NearestNeighborMethod};
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 pub use fast_vgicp_cuda::FastVGICPCuda;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 pub use ndt_cuda::NDTCuda;
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "docs-only")))]
 mod tests {
     use super::*;
 
@@ -130,5 +140,19 @@ mod tests {
         let points = vec![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]];
         let cloud: PointCloudXYZ = points.into_iter().collect();
         assert_eq!(cloud.size(), 2);
+    }
+}
+
+#[cfg(feature = "docs-only")]
+#[cfg(test)]
+mod docs_only_tests {
+    use super::types::*;
+
+    #[test]
+    fn test_types_exist() {
+        // Test that basic types can be created
+        let _method = RegularizationMethod::Frobenius;
+        let _mode = VoxelAccumulationMode::Additive;
+        let _neighbor = NeighborSearchMethod::Direct1;
     }
 }

@@ -24,6 +24,8 @@ include = [
 default = ["openmp"]
 openmp = []
 cuda = ["dep:cuda-sys"]
+bindgen = []  # Regenerate bindings from C++ headers (requires PCL/Eigen3)
+docs-only = []  # Skip C++ compilation, use pre-generated bindings only
 
 [dependencies]
 cxx.workspace = true
@@ -34,3 +36,7 @@ cuda-sys = { version = "0.2", optional = true }
 cxx-build = "1.0"
 cmake.workspace = true
 pkg-config.workspace = true
+
+[package.metadata.docs.rs]
+no-default-features = true
+features = ["docs-only"]

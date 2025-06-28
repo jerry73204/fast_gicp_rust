@@ -3,7 +3,8 @@
 //! This crate provides unsafe bindings to the fast_gicp C++ library through the cxx crate.
 //! For a safe, high-level API, use the `fast-gicp` crate instead.
 
-// Single FFI bridge with conditional compilation for CUDA
+// Use conditional compilation based on docs-only feature
+#[cfg(not(feature = "docs-only"))]
 #[cxx::bridge]
 pub mod ffi {
     // FFI-safe structs
@@ -248,8 +249,74 @@ pub mod ffi {
     }
 }
 
+// Documentation-only stub implementation when docs-only feature is enabled
+#[cfg(feature = "docs-only")]
+pub mod ffi {
+    //! FFI bindings stub for documentation generation.
+    //!
+    //! This module provides type definitions for documentation purposes when
+    //! building on docs.rs where C++ dependencies are not available.
+
+    /// A 4x4 transformation matrix represented as a flat array of 16 f32 values.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Transform4f {
+        /// The transformation matrix data in column-major order.
+        pub data: [f32; 16],
+    }
+
+    /// A 3D point with x, y, z coordinates.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Point3f {
+        /// X coordinate
+        pub x: f32,
+        /// Y coordinate  
+        pub y: f32,
+        /// Z coordinate
+        pub z: f32,
+    }
+
+    /// A 3D point with x, y, z coordinates and intensity value.
+    #[derive(Debug, Clone, Copy)]
+    pub struct Point4f {
+        /// X coordinate
+        pub x: f32,
+        /// Y coordinate
+        pub y: f32,
+        /// Z coordinate
+        pub z: f32,
+        /// Intensity value
+        pub intensity: f32,
+    }
+
+    // Note: Function signatures are omitted in docs.rs build since they cannot
+    // be called without the underlying C++ implementation.
+}
+
 // Re-export the types for convenience
 pub use ffi::{Point3f, Point4f, Transform4f};
 
 #[cfg(test)]
 mod test;
+
+#[cfg(feature = "docs-only")]
+#[cfg(test)]
+mod docs_only_tests {
+    use super::ffi::{Point3f, Point4f, Transform4f};
+
+    #[test]
+    fn test_types_exist() {
+        // Test that basic types can be created
+        let _point3f = Point3f {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        };
+        let _point4f = Point4f {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            intensity: 4.0,
+        };
+        let _transform = Transform4f { data: [0.0; 16] };
+    }
+}
