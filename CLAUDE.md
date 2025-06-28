@@ -64,6 +64,11 @@ When implementing Fast GICP in Rust:
 3. **Generic programming**: Make the implementation generic over floating-point types (f32/f64)
 4. **Error handling**: Use Result types for fallible operations
 
+## Code Style and Best Practices
+
+- Avoid deep nested blocks in Rust like "if a { if b { if c { return Ok(); }  }} Err()". Prefer the flat style like "if !a {return Err();} if !b {return Err();} if !c {return Err();} Ok()"
+- Make use of "let Some(x) = value else {};" syntax in Rust to avoid deeply nested blocks.
+
 ## Dependencies to Consider
 
 When setting up Cargo.toml, consider these dependencies:
