@@ -3,6 +3,8 @@
 //! These tests compare against expected behavior from the C++ implementation,
 //! treating it as ground truth.
 
+#![cfg(not(feature = "docs-only"))]
+
 use fast_gicp::{FastGICP, FastVGICP, PointCloudXYZ, RegularizationMethod, Transform3f};
 use nalgebra::Vector3;
 use std::f32::consts::PI;

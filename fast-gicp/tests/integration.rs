@@ -2,6 +2,8 @@
 //!
 //! End-to-end registration with synthetic data.
 
+#![cfg(not(feature = "docs-only"))]
+
 use fast_gicp::{FastGICP, FastVGICP, PointCloudXYZ, Transform3f};
 use nalgebra::Vector3;
 use std::f32::consts::PI;

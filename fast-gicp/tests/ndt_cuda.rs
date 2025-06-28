@@ -1,6 +1,6 @@
 //! Tests for NDT CUDA functionality.
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 mod tests {
     use fast_gicp::{NDTCuda, NdtDistanceMode, NeighborSearchMethod, PointCloudXYZ, Transform3f};
 

@@ -1,6 +1,6 @@
 //! Tests for CUDA-specific error handling.
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", not(feature = "docs-only")))]
 mod tests {
     use fast_gicp::{Error, FastVGICPCuda, NDTCuda, PointCloudXYZ};
 
