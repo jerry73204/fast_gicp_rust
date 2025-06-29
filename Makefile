@@ -66,15 +66,17 @@ verify-stubs:
 	@echo "  - /tmp/expanded_default.rs (default features)"
 	@echo "  - /tmp/expanded_cuda.rs (with CUDA)"
 
-# Test both stub variants
+# Test both stub variants (compile only, since stubs panic when called)
 .PHONY: test-stubs
 test-stubs:
-	@echo "🧪 Testing both stub variants..."
-	@echo "Testing non-CUDA stub (docs-only)..."
-	cargo nextest run --features docs-only --no-default-features --lib --tests --benches --no-fail-fast
-	@echo "Testing CUDA stub (docs-only + cuda)..."
-	cargo nextest run --features docs-only,cuda --no-default-features --lib --tests --benches --no-fail-fast
-	@echo "✅ Both stub variants tested successfully"
+	@echo "🧪 Testing both stub variants (compile-only)..."
+	@echo "Testing non-CUDA stub compilation (docs-only)..."
+	cargo build --features docs-only --no-default-features --lib --tests
+	cargo test --features docs-only --no-default-features --lib --no-run
+	@echo "Testing CUDA stub compilation (docs-only + cuda)..."
+	cargo build --features docs-only,cuda --no-default-features --lib --tests
+	cargo test --features docs-only,cuda --no-default-features --lib --no-run
+	@echo "✅ Both stub variants compile successfully"
 
 # Complete stub workflow: generate, verify, and test both variants
 .PHONY: update-stubs
