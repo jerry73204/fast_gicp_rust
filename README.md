@@ -115,6 +115,18 @@ This crate includes pre-generated FFI stub files to support documentation builds
 - `stub.rs`: For non-CUDA builds (excludes CUDA-specific types and functions)
 - `stub_cuda.rs`: For CUDA builds (includes all FFI items)
 
+#### Conditional Documentation Tests
+
+Starting from version 0.3.0, documentation tests are conditionally compiled:
+- In regular builds: Doc tests execute normally to ensure examples work correctly
+- In docs-only builds: Doc tests are marked as `no_run` to prevent execution with stub implementations
+
+This is achieved using Rust's `cfg_attr` feature:
+```rust
+#[cfg_attr(feature = "docs-only", doc = "```no_run")]
+#[cfg_attr(not(feature = "docs-only"), doc = "```")]
+```
+
 When modifying the FFI interface:
 
 ```bash
@@ -129,12 +141,19 @@ make test-stubs      # Test compilation with stubs
 # Test documentation build
 cargo doc --features docs-only --no-default-features --no-deps
 cargo doc --features "docs-only cuda" --no-default-features --no-deps
+
+# Run tests (skips docs-only tests automatically)
+make test
+
+# Check docs-only compilation
+make check-docs-only
 ```
 
 The stub system ensures that:
 - Documentation on docs.rs displays only the APIs available for each feature combination
 - The `fast-gicp` crate works seamlessly with stubs without requiring code changes
 - CUDA-specific APIs are only visible when the CUDA feature is enabled
+- Documentation tests run correctly in development but are safely skipped in docs-only builds
 
 ## Contributing
 
