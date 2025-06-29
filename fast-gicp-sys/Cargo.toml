@@ -41,4 +41,4 @@ quote = "1.0"
 
 [package.metadata.docs.rs]
 no-default-features = true
-features = ["docs-only"]
+features = ["docs-only", "cuda"]
