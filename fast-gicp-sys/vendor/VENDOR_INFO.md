@@ -4,8 +4,8 @@ This directory contains vendored C++ sources from the fast_gicp library.
 
 ## Source Information
 - Repository: https://github.com/SMRT-AIST/fast_gicp
-- Commit: 9db8634721559767f90e4f3a20806996fba242aa
-- Date: 2025-06-27 05:30:24 UTC
+- Commit: 5ada78babb625b7a35933a3b67e9ce8a5f6c1f98
+- Date: 2025-06-29 05:30:24 UTC
 - License: BSD 3-Clause (see fast_gicp/LICENSE)
 
 ## Contents
