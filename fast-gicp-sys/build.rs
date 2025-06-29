@@ -188,9 +188,10 @@ fn generate_stub_bindings(bridge_mod: &syn::ItemMod, include_cuda: bool) -> Stri
 
     let mut stub_items = vec![];
 
-    // Add imports
+    // Add imports - critically, we use cxx::UniquePtr
     stub_items.push(quote! {
         use std::pin::Pin;
+        use cxx::UniquePtr;
     });
 
     // Process the module content
@@ -219,7 +220,35 @@ fn generate_stub_bindings(bridge_mod: &syn::ItemMod, include_cuda: bool) -> Stri
                                 stub_items.push(quote! {
                                     #[repr(C)]
                                     pub struct #ident {
-                                        _private: [u8; 0],
+                                        _private: ::cxx::private::Opaque,
+                                    }
+
+                                    // Implement ExternType trait for cxx compatibility
+                                    unsafe impl ::cxx::ExternType for #ident {
+                                        type Id = ::cxx::type_id!(#ident);
+                                        type Kind = ::cxx::kind::Opaque;
+                                    }
+
+                                    // Implement UniquePtrTarget trait - required for UniquePtr<T>
+                                    unsafe impl ::cxx::private::UniquePtrTarget for #ident {
+                                        fn __typename(f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                                            f.write_str(stringify!(#ident))
+                                        }
+                                        fn __null() -> ::core::mem::MaybeUninit<*mut ::core::ffi::c_void> {
+                                            ::core::mem::MaybeUninit::new(::core::ptr::null_mut())
+                                        }
+                                        unsafe fn __raw(raw: *mut Self) -> ::core::mem::MaybeUninit<*mut ::core::ffi::c_void> {
+                                            ::core::mem::MaybeUninit::new(raw as _)
+                                        }
+                                        unsafe fn __get(repr: ::core::mem::MaybeUninit<*mut ::core::ffi::c_void>) -> *const Self {
+                                            repr.assume_init() as _
+                                        }
+                                        unsafe fn __release(repr: ::core::mem::MaybeUninit<*mut ::core::ffi::c_void>) -> *mut Self {
+                                            repr.assume_init() as _
+                                        }
+                                        unsafe fn __drop(_repr: ::core::mem::MaybeUninit<*mut ::core::ffi::c_void>) {
+                                            // For stub, do nothing
+                                        }
                                     }
                                 });
                             }
@@ -235,13 +264,13 @@ fn generate_stub_bindings(bridge_mod: &syn::ItemMod, include_cuda: bool) -> Stri
                                 }
 
                                 let sig = &func.sig;
-                                let vis = &func.vis;
                                 let attrs = &func.attrs;
 
+                                // Always make functions public
                                 stub_items.push(quote! {
                                     #(#attrs)*
                                     #[allow(unused_variables, dead_code)]
-                                    #vis #sig {
+                                    pub #sig {
                                         unreachable!("docs-only stub")
                                     }
                                 });
@@ -256,28 +285,6 @@ fn generate_stub_bindings(bridge_mod: &syn::ItemMod, include_cuda: bool) -> Stri
             }
         }
     }
-
-    // Add UniquePtr stub type
-    stub_items.push(quote! {
-        /// CXX UniquePtr type (stub implementation)
-        pub struct UniquePtr<T> {
-            _ptr: *mut T,
-            _marker: std::marker::PhantomData<T>,
-        }
-
-        impl<T> UniquePtr<T> {
-            /// Create a null UniquePtr
-            pub fn null() -> Self {
-                Self {
-                    _ptr: std::ptr::null_mut(),
-                    _marker: std::marker::PhantomData,
-                }
-            }
-        }
-
-        unsafe impl<T> Send for UniquePtr<T> where T: Send {}
-        unsafe impl<T> Sync for UniquePtr<T> where T: Sync {}
-    });
 
     // Generate the ffi module
     quote! {
