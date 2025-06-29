@@ -38,6 +38,17 @@ pub struct FastVGICPCuda {
 
 impl FastVGICPCuda {
     /// Creates a new FastVGICPCuda instance with default configuration.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # #[cfg(feature = "cuda")]
+    /// # {
+    /// use fast_gicp::FastVGICPCuda;
+    ///
+    /// let cuda_vgicp = FastVGICPCuda::new();
+    /// # }
+    /// ```
     pub fn new() -> Self {
         Self {
             config: FastVGICPCudaConfig::default(),
@@ -50,6 +61,20 @@ impl FastVGICPCuda {
     }
 
     /// Creates a new builder for constructing a FastVGICPCuda instance.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # #[cfg(feature = "cuda")]
+    /// # {
+    /// use fast_gicp::{FastVGICPCuda, types::NeighborSearchMethod};
+    ///
+    /// let cuda_vgicp = FastVGICPCuda::builder()
+    ///     .resolution(1.0)
+    ///     .neighbor_search_method(NeighborSearchMethod::Direct27)
+    ///     .build();
+    /// # }
+    /// ```
     pub fn builder() -> FastVGICPCudaBuilder {
         FastVGICPCudaBuilder::new()
     }

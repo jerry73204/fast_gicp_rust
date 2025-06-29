@@ -49,6 +49,14 @@ pub struct FastVGICP {
 
 impl FastVGICP {
     /// Creates a new FastVGICP instance with default configuration.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::FastVGICP;
+    ///
+    /// let vgicp = FastVGICP::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             config: FastVGICPConfig::default(),
@@ -61,6 +69,17 @@ impl FastVGICP {
     }
 
     /// Creates a new builder for constructing a FastVGICP instance.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::{FastVGICP, types::VoxelAccumulationMode};
+    ///
+    /// let vgicp = FastVGICP::builder()
+    ///     .resolution(0.5)
+    ///     .voxel_accumulation_mode(VoxelAccumulationMode::Additive)
+    ///     .build();
+    /// ```
     pub fn builder() -> FastVGICPBuilder {
         FastVGICPBuilder::new()
     }

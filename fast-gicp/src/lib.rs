@@ -25,7 +25,7 @@
 //!     .max_iterations(50)
 //!     .transformation_epsilon(1e-6)
 //!     .regularization_method(RegularizationMethod::Frobenius)
-//!     .build();
+//!     .build()?;
 //!
 //! let result = gicp.align(&source, &target)?;
 //! println!("Final transformation: {:?}", result.final_transformation);
@@ -43,7 +43,7 @@
 //! let vgicp = FastVGICP::builder()
 //!     .resolution(0.5)
 //!     .voxel_accumulation_mode(VoxelAccumulationMode::Additive)
-//!     .build();
+//!     .build()?;
 //!
 //! let result = vgicp.align(&source, &target)?;
 //! # Ok::<(), fast_gicp::Error>(())
@@ -62,7 +62,7 @@
 //! let cuda_vgicp = FastVGICPCuda::builder()
 //!     .resolution(1.0)
 //!     .neighbor_search_method(NeighborSearchMethod::Direct27)
-//!     .build();
+//!     .build()?;
 //!
 //! let result = cuda_vgicp.align(&source, &target)?;
 //! # }

@@ -16,6 +16,15 @@ pub struct PointCloudXYZI {
 
 impl PointCloudXYZ {
     /// Creates a new empty point cloud.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::PointCloudXYZ;
+    ///
+    /// let cloud = PointCloudXYZ::new();
+    /// assert!(cloud.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             inner: ffi::create_point_cloud_xyz(),
@@ -23,6 +32,16 @@ impl PointCloudXYZ {
     }
 
     /// Creates a point cloud from a slice of points.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::PointCloudXYZ;
+    ///
+    /// let points = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+    /// let cloud = PointCloudXYZ::from_points(&points);
+    /// assert_eq!(cloud.size(), 3);
+    /// ```
     pub fn from_points(points: &[[f32; 3]]) -> Self {
         let mut cloud = Self::new();
         cloud.reserve(points.len());
@@ -209,6 +228,15 @@ impl Extend<[f32; 3]> for PointCloudXYZ {
 
 impl PointCloudXYZI {
     /// Creates a new empty point cloud.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::PointCloudXYZI;
+    ///
+    /// let cloud = PointCloudXYZI::new();
+    /// assert!(cloud.is_empty());
+    /// ```
     pub fn new() -> Self {
         Self {
             inner: ffi::create_point_cloud_xyzi(),

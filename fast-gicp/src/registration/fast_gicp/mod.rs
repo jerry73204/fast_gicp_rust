@@ -55,6 +55,14 @@ pub struct FastGICP {
 
 impl FastGICP {
     /// Creates a new FastGICP instance with default configuration.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::FastGICP;
+    ///
+    /// let gicp = FastGICP::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             config: FastGICPConfig::default(),
@@ -67,11 +75,47 @@ impl FastGICP {
     }
 
     /// Creates a new builder for constructing a FastGICP instance.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::FastGICP;
+    ///
+    /// let gicp = FastGICP::builder()
+    ///     .max_iterations(50)
+    ///     .transformation_epsilon(1e-6)
+    ///     .build();
+    /// ```
     pub fn builder() -> FastGICPBuilder {
         FastGICPBuilder::new()
     }
 
     /// Performs registration on the given source and target point clouds.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # use fast_gicp::{FastGICP, PointCloudXYZ, Result};
+    /// # fn main() -> Result<()> {
+    /// let source = PointCloudXYZ::from_points(&[
+    ///     [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],
+    ///     [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [1.0, 0.0, 1.0],
+    ///     [0.0, 1.0, 1.0], [1.0, 1.0, 1.0]
+    /// ]);
+    /// let target = PointCloudXYZ::from_points(&[
+    ///     [0.1, 0.0, 0.0], [1.1, 0.0, 0.0], [0.1, 1.0, 0.0],
+    ///     [0.1, 0.0, 1.0], [1.1, 1.0, 0.0], [1.1, 0.0, 1.0],
+    ///     [0.1, 1.0, 1.0], [1.1, 1.0, 1.0]
+    /// ]);
+    ///
+    /// let gicp = FastGICP::new();
+    /// let result = gicp.align(&source, &target)?;
+    ///
+    /// println!("Converged: {}", result.has_converged);
+    /// println!("Fitness score: {}", result.fitness_score);
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn align(
         &self,
         source: &PointCloudXYZ,

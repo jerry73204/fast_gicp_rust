@@ -45,6 +45,17 @@ pub struct NDTCuda {
 
 impl NDTCuda {
     /// Creates a new NDTCuda instance with default configuration.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # #[cfg(feature = "cuda")]
+    /// # {
+    /// use fast_gicp::NDTCuda;
+    ///
+    /// let ndt = NDTCuda::new();
+    /// # }
+    /// ```
     pub fn new() -> Self {
         Self {
             config: NDTCudaConfig::default(),
@@ -57,11 +68,54 @@ impl NDTCuda {
     }
 
     /// Creates a new builder for constructing an NDTCuda instance.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # #[cfg(feature = "cuda")]
+    /// # {
+    /// use fast_gicp::{NDTCuda, types::{NdtDistanceMode, NeighborSearchMethod}};
+    ///
+    /// let ndt = NDTCuda::builder()
+    ///     .resolution(0.5)
+    ///     .distance_mode(NdtDistanceMode::D2D)
+    ///     .neighbor_search_method(NeighborSearchMethod::Direct1)
+    ///     .build();
+    /// # }
+    /// ```
     pub fn builder() -> NDTCudaBuilder {
         NDTCudaBuilder::new()
     }
 
     /// Performs registration on the given source and target point clouds.
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// # #[cfg(feature = "cuda")]
+    /// # {
+    /// # use fast_gicp::{NDTCuda, PointCloudXYZ, Result};
+    /// # fn main() -> Result<()> {
+    /// let source = PointCloudXYZ::from_points(&[
+    ///     [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],
+    ///     [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [1.0, 0.0, 1.0],
+    ///     [0.0, 1.0, 1.0], [1.0, 1.0, 1.0]
+    /// ]);
+    /// let target = PointCloudXYZ::from_points(&[
+    ///     [0.1, 0.0, 0.0], [1.1, 0.0, 0.0], [0.1, 1.0, 0.0],
+    ///     [0.1, 0.0, 1.0], [1.1, 1.0, 0.0], [1.1, 0.0, 1.0],
+    ///     [0.1, 1.0, 1.0], [1.1, 1.0, 1.0]
+    /// ]);
+    ///
+    /// let ndt = NDTCuda::new();
+    /// let result = ndt.align(&source, &target)?;
+    ///
+    /// println!("Converged: {}", result.has_converged);
+    /// println!("Fitness score: {}", result.fitness_score);
+    /// # Ok(())
+    /// # }
+    /// # }
+    /// ```
     pub fn align(
         &self,
         source: &PointCloudXYZ,

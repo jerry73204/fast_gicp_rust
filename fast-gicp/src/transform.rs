@@ -12,12 +12,39 @@ pub struct Transform3f {
 
 impl Transform3f {
     /// Create an identity transformation
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::Transform3f;
+    ///
+    /// let transform = Transform3f::identity();
+    /// assert_eq!(transform.matrix[0][0], 1.0);
+    /// assert_eq!(transform.matrix[3][3], 1.0);
+    /// ```
     pub fn identity() -> Self {
         let ffi_transform = ffi::transform_identity();
         Self::from_transform4f(&ffi_transform)
     }
 
     /// Create transformation from flat array (row-major order)
+    ///
+    /// # Examples
+    #[cfg_attr(feature = "docs-only", doc = "```no_run")]
+    #[cfg_attr(not(feature = "docs-only"), doc = "```")]
+    /// use fast_gicp::Transform3f;
+    ///
+    /// let data = [
+    ///     1.0, 0.0, 0.0, 1.0,
+    ///     0.0, 1.0, 0.0, 2.0,
+    ///     0.0, 0.0, 1.0, 3.0,
+    ///     0.0, 0.0, 0.0, 1.0,
+    /// ];
+    /// let transform = Transform3f::from_flat(&data);
+    /// assert_eq!(transform.matrix[0][3], 1.0); // x translation
+    /// assert_eq!(transform.matrix[1][3], 2.0); // y translation
+    /// assert_eq!(transform.matrix[2][3], 3.0); // z translation
+    /// ```
     pub fn from_flat(data: &[f32; 16]) -> Self {
         let mut matrix = [[0.0; 4]; 4];
         for i in 0..4 {
