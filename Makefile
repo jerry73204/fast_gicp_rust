@@ -36,6 +36,7 @@ help:
 generate-stubs:
 	@echo "🔧 Generating both CUDA and non-CUDA stubs..."
 	cargo build -p fast-gicp-sys --features bindgen
+	cargo build -p fast-gicp-sys --features bindgen,cuda
 	@echo "✅ Generated both stub files:"
 	@echo "  - fast-gicp-sys/src/generated/stub.rs (non-CUDA)"
 	@echo "  - fast-gicp-sys/src/generated/stub_cuda.rs (CUDA)"
