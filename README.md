@@ -109,6 +109,33 @@ git submodule update --init --recursive
 cargo build --release
 ```
 
+### Development Notes
+
+This crate includes pre-generated FFI stub files to support documentation builds on docs.rs where C++ dependencies are not available. The stub generation system maintains two variants:
+- `stub.rs`: For non-CUDA builds (excludes CUDA-specific types and functions)
+- `stub_cuda.rs`: For CUDA builds (includes all FFI items)
+
+When modifying the FFI interface:
+
+```bash
+# Regenerate both CUDA and non-CUDA stubs after FFI changes
+make update-stubs
+
+# Or run individual steps:
+make generate-stubs  # Generate both stub files
+make verify-stubs    # Verify correct CUDA item filtering
+make test-stubs      # Test compilation with stubs
+
+# Test documentation build
+cargo doc --features docs-only --no-default-features --no-deps
+cargo doc --features "docs-only cuda" --no-default-features --no-deps
+```
+
+The stub system ensures that:
+- Documentation on docs.rs displays only the APIs available for each feature combination
+- The `fast-gicp` crate works seamlessly with stubs without requiring code changes
+- CUDA-specific APIs are only visible when the CUDA feature is enabled
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
