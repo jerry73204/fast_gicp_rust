@@ -19,10 +19,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fast-gicp = "0.1"
+fast-gicp = "0.3"
 
 # For CUDA support
-fast-gicp = { version = "0.1", features = ["cuda"] }
+fast-gicp = { version = "0.3", features = ["cuda"] }
 ```
 
 ## Basic Usage
