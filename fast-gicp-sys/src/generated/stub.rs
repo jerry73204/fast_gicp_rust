@@ -22,6 +22,10 @@ pub mod ffi {
         pub z: f32,
         pub intensity: f32,
     }
+    #[derive(Debug, Clone, Copy)]
+    pub struct Hessian6x6 {
+        pub data: [f64; 36],
+    }
     #[repr(C)]
     pub struct PointCloudXYZ {
         _private: ::cxx::private::Opaque,

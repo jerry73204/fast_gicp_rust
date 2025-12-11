@@ -33,6 +33,12 @@ pub mod ffi {
         pub intensity: f32,
     }
 
+    /// 6x6 Hessian matrix (row-major order)
+    #[derive(Debug, Clone, Copy)]
+    pub struct Hessian6x6 {
+        pub data: [f64; 36],
+    }
+
     unsafe extern "C++" {
         include!("wrapper.h");
 
@@ -246,6 +252,12 @@ pub mod ffi {
         #[cfg(feature = "cuda")]
         fn ndt_cuda_get_final_num_iterations(ndt_cuda: &NDTCuda) -> i32;
 
+        // NDTCuda Hessian and cost evaluation (for covariance estimation)
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_get_hessian(ndt_cuda: &NDTCuda) -> Hessian6x6;
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_evaluate_cost(ndt_cuda: &NDTCuda, pose: &Transform4f) -> f64;
+
         // === Transform Utilities ===
         fn transform_identity() -> Transform4f;
         fn transform_from_translation(x: f32, y: f32, z: f32) -> Transform4f;
@@ -262,7 +274,7 @@ include!("generated/stub.rs");
 include!("generated/stub_cuda.rs");
 
 // Re-export the types for convenience
-pub use ffi::{Point3f, Point4f, Transform4f};
+pub use ffi::{Hessian6x6, Point3f, Point4f, Transform4f};
 
 #[cfg(test)]
 mod test;

@@ -107,7 +107,7 @@ pub use point_cloud::{PointCloudXYZ, PointCloudXYZI};
 pub use registration::{FastGICP, FastVGICP, RegistrationResult};
 pub use transform::Transform3f;
 
-pub use types::{NeighborSearchMethod, RegularizationMethod, VoxelAccumulationMode};
+pub use types::{Hessian6x6, NeighborSearchMethod, RegularizationMethod, VoxelAccumulationMode};
 
 #[cfg(feature = "cuda")]
 pub use types::{NdtDistanceMode, NearestNeighborMethod};
@@ -116,7 +116,7 @@ pub use types::{NdtDistanceMode, NearestNeighborMethod};
 pub use fast_vgicp_cuda::FastVGICPCuda;
 
 #[cfg(feature = "cuda")]
-pub use ndt_cuda::NDTCuda;
+pub use ndt_cuda::{NDTCuda, NdtAlignResult};
 
 #[cfg(all(test, not(feature = "cuda")))]
 mod tests {

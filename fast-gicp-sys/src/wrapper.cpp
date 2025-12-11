@@ -602,6 +602,28 @@ int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda) {
   // approximation
   return const_cast<NDTCuda &>(ndt_cuda).getMaximumIterations();
 }
+
+Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &ndt_cuda) {
+  Hessian6x6 result;
+  const Eigen::Matrix<double, 6, 6> &hessian =
+      const_cast<NDTCuda &>(ndt_cuda).getFinalHessian();
+  for (int i = 0; i < 6; ++i) {
+    for (int j = 0; j < 6; ++j) {
+      result.data[i * 6 + j] = hessian(i, j);
+    }
+  }
+  return result;
+}
+
+double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose) {
+  try {
+    Eigen::Matrix4f pose_matrix = transform4f_to_eigen(pose);
+    // evaluateCost computes the cost at the given pose without modifying state
+    return const_cast<NDTCuda &>(ndt_cuda).evaluateCost(pose_matrix);
+  } catch (const std::exception &e) {
+    throw std::runtime_error(std::string("Cost evaluation failed: ") + e.what());
+  }
+}
 #else
 // Stub implementations when CUDA is not available
 std::unique_ptr<NDTCuda> create_ndt_cuda() {
@@ -661,6 +683,14 @@ bool ndt_cuda_has_converged(const NDTCuda &) {
 }
 
 int ndt_cuda_get_final_num_iterations(const NDTCuda &) {
+  throw std::runtime_error("CUDA support not available in this build");
+}
+
+Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &) {
+  throw std::runtime_error("CUDA support not available in this build");
+}
+
+double ndt_cuda_evaluate_cost(const NDTCuda &, const Transform4f &) {
   throw std::runtime_error("CUDA support not available in this build");
 }
 #endif

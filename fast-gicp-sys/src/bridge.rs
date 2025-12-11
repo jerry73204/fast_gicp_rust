@@ -24,6 +24,12 @@ pub mod ffi {
         pub intensity: f32,
     }
 
+    /// 6x6 Hessian matrix (row-major order)
+    #[derive(Debug, Clone, Copy)]
+    pub struct Hessian6x6 {
+        pub data: [f64; 36],
+    }
+
     unsafe extern "C++" {
         include!("wrapper.h");
 
@@ -236,6 +242,12 @@ pub mod ffi {
         fn ndt_cuda_get_fitness_score(ndt_cuda: &NDTCuda) -> f64;
         #[cfg(feature = "cuda")]
         fn ndt_cuda_get_final_num_iterations(ndt_cuda: &NDTCuda) -> i32;
+
+        // NDTCuda Hessian and cost evaluation (for covariance estimation)
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_get_hessian(ndt_cuda: &NDTCuda) -> Hessian6x6;
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_evaluate_cost(ndt_cuda: &NDTCuda, pose: &Transform4f) -> f64;
 
         // === Transform Utilities ===
         fn transform_identity() -> Transform4f;

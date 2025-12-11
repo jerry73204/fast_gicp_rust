@@ -5,10 +5,20 @@ mod builder;
 pub use builder::NDTCudaBuilder;
 
 use crate::{
-    types::{NdtDistanceMode, NeighborSearchMethod},
+    types::{Hessian6x6, NdtDistanceMode, NeighborSearchMethod},
     PointCloudXYZ, RegistrationResult, Result, Transform3f,
 };
 use fast_gicp_sys::ffi;
+
+/// Extended result from NDT alignment including Hessian matrix.
+/// The Hessian is useful for covariance estimation via Laplace approximation.
+#[derive(Debug, Clone)]
+pub struct NdtAlignResult {
+    /// Standard registration result
+    pub result: RegistrationResult,
+    /// 6x6 Hessian matrix from the optimization
+    pub hessian: Hessian6x6,
+}
 
 /// Configuration for NDTCuda algorithm.
 #[derive(Debug, Clone)]
@@ -131,6 +141,27 @@ impl NDTCuda {
         target: &PointCloudXYZ,
         initial_guess: Option<&Transform3f>,
     ) -> Result<RegistrationResult> {
+        let full_result = self.align_with_guess_full(source, target, initial_guess)?;
+        Ok(full_result.result)
+    }
+
+    /// Performs registration and returns extended result including Hessian matrix.
+    /// Use this when you need the Hessian for covariance estimation.
+    pub fn align_full(
+        &self,
+        source: &PointCloudXYZ,
+        target: &PointCloudXYZ,
+    ) -> Result<NdtAlignResult> {
+        self.align_with_guess_full(source, target, None)
+    }
+
+    /// Performs registration with initial guess and returns extended result including Hessian.
+    pub fn align_with_guess_full(
+        &self,
+        source: &PointCloudXYZ,
+        target: &PointCloudXYZ,
+        initial_guess: Option<&Transform3f>,
+    ) -> Result<NdtAlignResult> {
         // Validate point clouds
         crate::registration::validation::validate_point_cloud_xyz(source, "source")?;
         crate::registration::validation::validate_point_cloud_xyz(target, "target")?;
@@ -172,12 +203,50 @@ impl NDTCuda {
         let has_converged = ffi::ndt_cuda_has_converged(&inner);
         let num_iterations = ffi::ndt_cuda_get_final_num_iterations(&inner);
 
-        Ok(RegistrationResult {
-            final_transformation: Transform3f::from_transform4f(&final_transformation),
-            fitness_score,
-            has_converged,
-            num_iterations,
+        // Get Hessian matrix for covariance estimation
+        let hessian_ffi = ffi::ndt_cuda_get_hessian(&inner);
+        let hessian = Hessian6x6::from_data(hessian_ffi.data);
+
+        Ok(NdtAlignResult {
+            result: RegistrationResult {
+                final_transformation: Transform3f::from_transform4f(&final_transformation),
+                fitness_score,
+                has_converged,
+                num_iterations,
+            },
+            hessian,
         })
+    }
+
+    /// Evaluate the NDT cost (fitness score) at a given pose without running optimization.
+    /// This is useful for MULTI_NDT_SCORE covariance estimation mode.
+    ///
+    /// Note: This requires source and target to be set first via align methods.
+    pub fn evaluate_cost_at_pose(
+        &self,
+        source: &PointCloudXYZ,
+        target: &PointCloudXYZ,
+        pose: &Transform3f,
+    ) -> Result<f64> {
+        // Validate point clouds
+        crate::registration::validation::validate_point_cloud_xyz(source, "source")?;
+        crate::registration::validation::validate_point_cloud_xyz(target, "target")?;
+
+        // Create FFI instance and configure
+        let mut inner = ffi::create_ndt_cuda();
+        ffi::ndt_cuda_set_input_source(inner.pin_mut(), source.as_ffi());
+        ffi::ndt_cuda_set_input_target(inner.pin_mut(), target.as_ffi());
+        ffi::ndt_cuda_set_resolution(inner.pin_mut(), self.config.resolution);
+        ffi::ndt_cuda_set_distance_mode(inner.pin_mut(), self.config.distance_mode as i32);
+        ffi::ndt_cuda_set_neighbor_search_method(
+            inner.pin_mut(),
+            self.config.neighbor_search_method as i32,
+            self.config.neighbor_search_radius,
+        );
+
+        let pose_ffi = pose.as_transform4f();
+        let cost = ffi::ndt_cuda_evaluate_cost(&inner, &pose_ffi);
+        Ok(cost)
     }
 }
 

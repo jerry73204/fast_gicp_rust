@@ -149,7 +149,7 @@ impl PointCloudXYZ {
     }
 
     /// Returns an iterator over the points in the cloud.
-    pub fn iter(&self) -> PointCloudXYZIter {
+    pub fn iter(&self) -> PointCloudXYZIter<'_> {
         PointCloudXYZIter {
             cloud: self,
             index: 0,
@@ -374,7 +374,7 @@ impl PointCloudXYZI {
     }
 
     /// Returns an iterator over the points in the cloud.
-    pub fn iter(&self) -> PointCloudXYZIIter {
+    pub fn iter(&self) -> PointCloudXYZIIter<'_> {
         PointCloudXYZIIter {
             cloud: self,
             index: 0,

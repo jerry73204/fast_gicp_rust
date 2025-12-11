@@ -19,6 +19,7 @@
 struct Transform4f;
 struct Point3f;
 struct Point4f;
+struct Hessian6x6;
 
 // Type aliases for clean instantiation
 using PointCloudXYZ = pcl::PointCloud<pcl::PointXYZ>;
@@ -178,6 +179,10 @@ Transform4f ndt_cuda_align_with_guess(NDTCuda &ndt_cuda,
 bool ndt_cuda_has_converged(const NDTCuda &ndt_cuda);
 double ndt_cuda_get_fitness_score(const NDTCuda &ndt_cuda);
 int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
+
+// Hessian and cost evaluation (for covariance estimation)
+Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &ndt_cuda);
+double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose);
 #else
 // Stub declarations for compatibility
 std::unique_ptr<NDTCuda> create_ndt_cuda();
@@ -200,6 +205,10 @@ Transform4f ndt_cuda_align_with_guess(NDTCuda &ndt_cuda,
 bool ndt_cuda_has_converged(const NDTCuda &ndt_cuda);
 double ndt_cuda_get_fitness_score(const NDTCuda &ndt_cuda);
 int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
+
+// Hessian and cost evaluation (stubs for non-CUDA build)
+Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &ndt_cuda);
+double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose);
 #endif
 
 // === Transform Utilities ===
