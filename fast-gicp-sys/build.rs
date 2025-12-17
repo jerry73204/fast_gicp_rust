@@ -413,7 +413,13 @@ fn link_system_libraries(pcl: &pkg_config::Library, cuda_enabled: bool) {
         "cargo:rustc-link-search=native={}/build",
         fast_gicp_build.display()
     );
-    println!("cargo:rustc-link-lib=fast_gicp");
+
+    // Static linking order matters: dependents before dependencies
+    // fast_gicp depends on fast_vgicp_cuda (when CUDA is enabled)
+    println!("cargo:rustc-link-lib=static=fast_gicp");
+    if cuda_enabled {
+        println!("cargo:rustc-link-lib=static=fast_vgicp_cuda");
+    }
 }
 
 /// CUDA toolkit information

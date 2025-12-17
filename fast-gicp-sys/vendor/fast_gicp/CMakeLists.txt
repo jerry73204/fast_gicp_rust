@@ -62,7 +62,7 @@ endif()
 ## Build ##
 ###########
 
-add_library(fast_gicp SHARED
+add_library(fast_gicp STATIC
   src/fast_gicp/gicp/lsq_registration.cpp
   src/fast_gicp/gicp/fast_gicp.cpp
   src/fast_gicp/gicp/fast_gicp_st.cpp
@@ -124,7 +124,7 @@ if(BUILD_VGICP_CUDA)
   add_definitions(-DUSE_VGICP_CUDA)
 
   # Modern CUDA library creation (replaces cuda_add_library)
-  add_library(fast_vgicp_cuda SHARED
+  add_library(fast_vgicp_cuda STATIC
     src/fast_gicp/cuda/fast_vgicp_cuda.cu
     src/fast_gicp/cuda/brute_force_knn.cu  # Pure Thrust/CUB implementation (Phase 4)
     src/fast_gicp/cuda/covariance_estimation.cu
