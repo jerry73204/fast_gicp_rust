@@ -69,6 +69,7 @@ fn compile_cpp_wrapper(pcl: &pkg_config::Library, cuda_enabled: bool) {
         .include(fast_gicp_dir.join("include"))
         .flag_if_supported("-std=c++17")
         .flag_if_supported("-O3")
+        .flag_if_supported("-fopenmp")
         .flag_if_supported("-DFAST_GICP_CUDA_12_MODERNIZATION");
 
     // Add CUDA flag and include paths only if CUDA is actually available
@@ -371,6 +372,17 @@ fn link_system_libraries(pcl: &pkg_config::Library, cuda_enabled: bool) {
     println!("cargo:rustc-link-lib=pcl_registration");
     println!("cargo:rustc-link-lib=flann");
     println!("cargo:rustc-link-lib=flann_cpp");
+
+    // Link LZ4 library (required for PCL IO compression)
+    println!("cargo:rustc-link-lib=lz4");
+
+    // Link OpenMP library (required for parallel algorithms in fast-gicp)
+    // GNU OpenMP runtime on Linux
+    #[cfg(target_os = "linux")]
+    println!("cargo:rustc-link-lib=gomp");
+    // Apple's libomp on macOS
+    #[cfg(target_os = "macos")]
+    println!("cargo:rustc-link-lib=omp");
 
     // Build fast_gicp library using CMake
     let fast_gicp_dir = get_fast_gicp_dir();
