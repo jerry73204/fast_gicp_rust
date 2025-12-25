@@ -183,6 +183,9 @@ int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
 // Hessian and cost evaluation (for covariance estimation)
 Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &ndt_cuda);
 double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose);
+
+// NVTL (Nearest Voxel Transformation Likelihood) scoring
+double ndt_cuda_evaluate_nvtl(NDTCuda &ndt_cuda, const Transform4f &pose, double outlier_ratio);
 #else
 // Stub declarations for compatibility
 std::unique_ptr<NDTCuda> create_ndt_cuda();
@@ -209,6 +212,9 @@ int ndt_cuda_get_final_num_iterations(const NDTCuda &ndt_cuda);
 // Hessian and cost evaluation (stubs for non-CUDA build)
 Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &ndt_cuda);
 double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose);
+
+// NVTL (stub for non-CUDA build)
+double ndt_cuda_evaluate_nvtl(NDTCuda &ndt_cuda, const Transform4f &pose, double outlier_ratio);
 #endif
 
 // === Transform Utilities ===

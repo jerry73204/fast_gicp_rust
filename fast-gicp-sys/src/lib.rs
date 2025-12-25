@@ -258,6 +258,14 @@ pub mod ffi {
         #[cfg(feature = "cuda")]
         fn ndt_cuda_evaluate_cost(ndt_cuda: &NDTCuda, pose: &Transform4f) -> f64;
 
+        // NDTCuda NVTL (Nearest Voxel Transformation Likelihood) scoring
+        #[cfg(feature = "cuda")]
+        fn ndt_cuda_evaluate_nvtl(
+            ndt_cuda: Pin<&mut NDTCuda>,
+            pose: &Transform4f,
+            outlier_ratio: f64,
+        ) -> f64;
+
         // === Transform Utilities ===
         fn transform_identity() -> Transform4f;
         fn transform_from_translation(x: f32, y: f32, z: f32) -> Transform4f;

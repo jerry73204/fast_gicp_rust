@@ -6,6 +6,7 @@
 #include <fast_gicp/cuda/covariance_regularization.cuh>
 #include <fast_gicp/cuda/find_voxel_correspondences.cuh>
 #include <fast_gicp/cuda/ndt_compute_derivatives.cuh>
+#include <fast_gicp/cuda/nvtl_score.cuh>
 
 namespace fast_gicp {
 namespace cuda {
@@ -174,6 +175,13 @@ double NDTCudaCore::compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<
     case fast_gicp::NDTDistanceMode::D2D:
       return d2d_ndt_compute_derivatives(*target_voxelmap, *source_voxelmap, *correspondences, trans_ptr.data(), trans_ptr.data() + 1, H, b);
   }
+}
+
+double NDTCudaCore::compute_nvtl(const Eigen::Isometry3d& trans, double outlier_ratio) const {
+  if (!source_points || !target_voxelmap) {
+    return 0.0;
+  }
+  return compute_nvtl_score(*target_voxelmap, *source_points, trans.cast<float>(), resolution, outlier_ratio);
 }
 
 }  // namespace cuda

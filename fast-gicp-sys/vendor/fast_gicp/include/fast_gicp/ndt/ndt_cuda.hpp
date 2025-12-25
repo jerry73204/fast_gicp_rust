@@ -54,6 +54,13 @@ public:
   void setResolution(double resolution);
   void setNeighborSearchMethod(NeighborSearchMethod method, double radius = -1.0);
 
+  /// Evaluate NVTL (Nearest Voxel Transformation Likelihood) score.
+  /// This implements Autoware's NVTL metric for evaluating alignment quality.
+  /// @param pose The pose transformation matrix to evaluate
+  /// @param outlier_ratio Outlier ratio for Gaussian parameters (Autoware default: 0.55)
+  /// @return NVTL score (higher = better alignment), typically in range [0, ~5]
+  double evaluateNvtl(const Matrix4& pose, double outlier_ratio = 0.55);
+
   virtual void swapSourceAndTarget() override;
   virtual void clearSource() override;
   virtual void clearTarget() override;

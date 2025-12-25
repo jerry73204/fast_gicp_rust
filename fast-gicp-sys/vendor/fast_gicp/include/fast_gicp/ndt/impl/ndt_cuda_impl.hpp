@@ -89,6 +89,19 @@ double NDTCuda<PointSource, PointTarget>::compute_error(const Eigen::Isometry3d&
   return ndt_cuda_->compute_error(trans, nullptr, nullptr);
 }
 
+template <typename PointSource, typename PointTarget>
+double NDTCuda<PointSource, PointTarget>::evaluateNvtl(const Matrix4& pose, double outlier_ratio) {
+  // Ensure voxelmap is created (it's lazily created during alignment normally)
+  ndt_cuda_->create_voxelmaps();
+
+  // Convert Matrix4 to Isometry3d
+  Eigen::Isometry3d trans = Eigen::Isometry3d::Identity();
+  trans.linear() = pose.template block<3, 3>(0, 0).template cast<double>();
+  trans.translation() = pose.template block<3, 1>(0, 3).template cast<double>();
+
+  return ndt_cuda_->compute_nvtl(trans, outlier_ratio);
+}
+
 }  // namespace fast_gicp
 
 #endif

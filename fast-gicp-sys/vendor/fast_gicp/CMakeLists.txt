@@ -136,6 +136,7 @@ if(BUILD_VGICP_CUDA)
     src/fast_gicp/cuda/compute_mahalanobis.cu
     src/fast_gicp/cuda/ndt_cuda.cu
     src/fast_gicp/cuda/ndt_compute_derivatives.cu
+    src/fast_gicp/cuda/nvtl_score.cu
   )
 
   # Set CUDA language properties for modern CMake

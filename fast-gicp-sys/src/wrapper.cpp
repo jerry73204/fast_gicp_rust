@@ -624,6 +624,16 @@ double ndt_cuda_evaluate_cost(const NDTCuda &ndt_cuda, const Transform4f &pose) 
     throw std::runtime_error(std::string("Cost evaluation failed: ") + e.what());
   }
 }
+
+double ndt_cuda_evaluate_nvtl(NDTCuda &ndt_cuda, const Transform4f &pose, double outlier_ratio) {
+  try {
+    Eigen::Matrix4f pose_matrix = transform4f_to_eigen(pose);
+    // evaluateNvtl creates voxelmap if needed and computes NVTL score
+    return ndt_cuda.evaluateNvtl(pose_matrix, outlier_ratio);
+  } catch (const std::exception &e) {
+    throw std::runtime_error(std::string("NVTL evaluation failed: ") + e.what());
+  }
+}
 #else
 // Stub implementations when CUDA is not available
 std::unique_ptr<NDTCuda> create_ndt_cuda() {
@@ -691,6 +701,10 @@ Hessian6x6 ndt_cuda_get_hessian(const NDTCuda &) {
 }
 
 double ndt_cuda_evaluate_cost(const NDTCuda &, const Transform4f &) {
+  throw std::runtime_error("CUDA support not available in this build");
+}
+
+double ndt_cuda_evaluate_nvtl(const NDTCuda &, const Transform4f &, double) {
   throw std::runtime_error("CUDA support not available in this build");
 }
 #endif

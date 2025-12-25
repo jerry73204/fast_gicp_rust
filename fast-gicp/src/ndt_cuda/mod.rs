@@ -248,6 +248,52 @@ impl NDTCuda {
         let cost = ffi::ndt_cuda_evaluate_cost(&inner, &pose_ffi);
         Ok(cost)
     }
+
+    /// Evaluate NVTL (Nearest Voxel Transformation Likelihood) score at a given pose.
+    ///
+    /// NVTL is Autoware's metric for evaluating alignment quality, based on
+    /// computing Mahalanobis distance to voxel means using voxel covariances.
+    /// Higher scores indicate better alignment (typically in range [0, ~5]).
+    ///
+    /// This uses the voxelmap that was built for the target point cloud during
+    /// the last alignment operation. For best results, call this after `align()`
+    /// or `align_with_guess()` on the same source/target pair.
+    ///
+    /// # Arguments
+    /// * `source` - Source point cloud to transform
+    /// * `target` - Target point cloud (voxelmap is built from this)
+    /// * `pose` - Pose to evaluate
+    /// * `outlier_ratio` - Outlier ratio for Gaussian parameters (Autoware default: 0.55)
+    ///
+    /// # Returns
+    /// NVTL score (higher = better alignment)
+    pub fn evaluate_nvtl(
+        &self,
+        source: &PointCloudXYZ,
+        target: &PointCloudXYZ,
+        pose: &Transform3f,
+        outlier_ratio: f64,
+    ) -> Result<f64> {
+        // Validate point clouds
+        crate::registration::validation::validate_point_cloud_xyz(source, "source")?;
+        crate::registration::validation::validate_point_cloud_xyz(target, "target")?;
+
+        // Create FFI instance and configure
+        let mut inner = ffi::create_ndt_cuda();
+        ffi::ndt_cuda_set_input_source(inner.pin_mut(), source.as_ffi());
+        ffi::ndt_cuda_set_input_target(inner.pin_mut(), target.as_ffi());
+        ffi::ndt_cuda_set_resolution(inner.pin_mut(), self.config.resolution);
+        ffi::ndt_cuda_set_distance_mode(inner.pin_mut(), self.config.distance_mode as i32);
+        ffi::ndt_cuda_set_neighbor_search_method(
+            inner.pin_mut(),
+            self.config.neighbor_search_method as i32,
+            self.config.neighbor_search_radius,
+        );
+
+        let pose_ffi = pose.as_transform4f();
+        let nvtl = ffi::ndt_cuda_evaluate_nvtl(inner.pin_mut(), &pose_ffi, outlier_ratio);
+        Ok(nvtl)
+    }
 }
 
 impl Default for NDTCuda {

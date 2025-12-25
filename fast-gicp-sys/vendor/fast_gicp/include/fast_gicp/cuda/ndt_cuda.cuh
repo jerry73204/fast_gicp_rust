@@ -45,6 +45,12 @@ public:
   void update_correspondences(const Eigen::Isometry3d& trans);
   double compute_error(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) const;
 
+  /// Compute NVTL (Nearest Voxel Transformation Likelihood) score.
+  /// @param trans The transformation to apply to source points
+  /// @param outlier_ratio Outlier ratio for Gaussian parameters (Autoware default: 0.55)
+  /// @return NVTL score (higher = better alignment), typically in range [0, ~5]
+  double compute_nvtl(const Eigen::Isometry3d& trans, double outlier_ratio = 0.55) const;
+
 public:
   fast_gicp::NDTDistanceMode distance_mode;
   double resolution;
